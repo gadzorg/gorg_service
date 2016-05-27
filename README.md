@@ -1,4 +1,5 @@
 # GorgService
+[![Code Climate](https://codeclimate.com/github/Zooip/gorg_service/badges/gpa.svg)](https://codeclimate.com/github/Zooip/gorg_service) [![Test Coverage](https://codeclimate.com/github/Zooip/gorg_service/badges/coverage.svg)](https://codeclimate.com/github/Zooip/gorg_service/coverage) [![Build Status](https://travis-ci.org/Zooip/gorg-rabbitmq_bot.svg?branch=master)](https://travis-ci.org/Zooip/gorg-rabbitmq_bot)
 
 ## Installation
 
