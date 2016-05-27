@@ -6,7 +6,7 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(host: "localhost", port: 5672, queue_name: "gapps", rabbitmq_user: nil, rabbitmq_password: nil, exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000)
+    def initialize(host: "localhost", port: 5672, queue_name: "gapps", rabbitmq_user: nil, rabbitmq_password: nil, exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48)
       @host=host
       @port=port
       @queue_name=queue_name
@@ -49,7 +49,7 @@ class GorgService
           rescue SoftfailError => e
             message.log_error(e)
             puts " [*] SOFTFAIL ERROR : #{e.message}"
-            if message.errors.count > 5
+            if message.errors.count >= max_attempts
               puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
             else
 

@@ -16,6 +16,7 @@ class GorgService
       rabbitmq_user: GorgService.configuration.rabbitmq_user,
       rabbitmq_password: GorgService.configuration.rabbitmq_password,
       deferred_time: GorgService.configuration.rabbitmq_deferred_time,
+      max_attempts: GorgService.configuration.rabbitmq_max_attempts,
       )
   end
 
