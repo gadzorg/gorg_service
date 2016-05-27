@@ -1,4 +1,4 @@
-class Gorg::RabbitmqBot
+class GorgService
   class << self
     attr_writer :configuration
 
@@ -28,8 +28,8 @@ class Gorg::RabbitmqBot
 
     def initialize
 
-      @application_name        = "GorgRabbitMQBot"
-      @application_id          = "grb" 
+      @application_name        = "GorgService"
+      @application_id          = "gs" 
       @message_handler_map     = {}
       @rabbitmq_host           = "localhost"
       @rabbitmq_port           = 5672

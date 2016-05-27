@@ -1,16 +1,16 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'gorg/rabbitmq_bot/version'
+#require 'gorg_service/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "gorg-rabbitmq_bot"
-  spec.version       = Gorg::RabbitmqBot::VERSION
+  spec.name          = "gorg_service"
+  spec.version       = "0.1.0"
   spec.authors       = ["Alexandre Narbonne"]
   spec.email         = ["alexandre.narbonne@gadz.org"]
 
   spec.summary       = "Standard RabbitMQ bot used in Gadz.org SOA"
-  spec.homepage      = "https://github.com/Zooip/gorg-rabbitmq_bot"
+  spec.homepage      = "https://github.com/Zooip/gorg_service"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency 'bunny', '>= 2.2.2'
+  spec.add_dependency 'bunny', '~> 2.2', '>= 2.2.2'
 
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"

@@ -1,11 +1,11 @@
-# Gorg::RabbitmqBot
+# GorgService
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'gorg-rabbitmq_bot'
+gem 'gorg_service'
 ```
 
 And then execute:
@@ -14,14 +14,14 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install gorg-rabbitmq_bot
+    $ gem install gorg_service
 
 ## Setup
   
   Before being used GramV1Client must be configured. In Rails app, put it in an Initializer.
 
 ```ruby
-Gorg::RabbitmqBot.configure do |c|
+GorgService.configure do |c|
   # application name for display usage
   c.application_name="My Application Name"
   # application id used to find message from this producer
@@ -65,7 +65,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/gorg-rabbitmq_bot.
+Bug reports and pull requests are welcome on GitHub at https://github.com/Zooip/gorg_service.
 
 
 ## License
