@@ -11,6 +11,10 @@ class GorgService
     attr_accessor :data
     attr_accessor :errors
 
+    def errors
+      @errors||=[]
+    end
+
 
     def initialize(id: nil, data: nil, event: nil, errors: [])
       @id=id || generate_id
@@ -43,7 +47,7 @@ class GorgService
 
     # Log FailError in message body
     def log_error error
-      @errors<<{
+      errors<<{
             type: error.class.to_s.downcase,
             message: error.message,
             timestamp: Time.now.utc.iso8601,

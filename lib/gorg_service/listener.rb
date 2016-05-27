@@ -48,12 +48,16 @@ class GorgService
             end
           rescue SoftfailError => e
             message.log_error(e)
+            puts " [*] SOFTFAIL ERROR : #{e.message}"
             if message.errors.count > 5
-
+              puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
             else
+
               send_to_deferred_queue(message)
             end
-          rescue HardfailError => e          
+          rescue HardfailError => e
+             puts " [*] SOFTFAIL ERROR : #{e.message}"
+             puts " [*] DISCARD MESSAGE"          
           end
 
           ch.ack(delivery_info.delivery_tag)
@@ -84,6 +88,7 @@ class GorgService
             'x-dead-letter-routing-key' => msg.event,
           }
         )
+      puts " [*] DEFER MESSAGE : message sent to #{@queue_name}_deferred qith routing key #{msg.event}"
       q.publish(msg.to_str, :routing_key => msg.event)
     end
 

@@ -13,7 +13,7 @@ class GorgService
     end
 
     def raise_softfail(message, error:nil)
-      raise HardfailError.new(error), message
+      raise SoftfailError.new(error), message
     end
 
   end

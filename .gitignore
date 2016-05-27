@@ -9,3 +9,4 @@
 /tmp/
 /build/
 *.gem
+/bin/worker
