@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-#require 'gorg_service/version'
+require 'gorg_service/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "gorg_service"
-  spec.version       = "0.1.0"
+  spec.version       = GorgService::VERSION
   spec.authors       = ["Alexandre Narbonne"]
   spec.email         = ["alexandre.narbonne@gadz.org"]
 
