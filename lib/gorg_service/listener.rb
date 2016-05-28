@@ -15,7 +15,7 @@ class GorgService
       @rabbitmq_password=rabbitmq_password
       @message_handler_map=message_handler_map
       @deferred_time=deferred_time
-
+      @max_attempts=max_attempts
     end
 
     def listen
@@ -40,25 +40,8 @@ class GorgService
           puts " [#] Received message with routing key #{routing_key} containing : #{body}"
           message_handler=message_handler_for routing_key
           message=Message.parse_body(body)
-          begin
-            if message_handler
-              message_handler.new(message)
-            else
-              raise HardfailError.new(), "Unknown routing_key"
-            end
-          rescue SoftfailError => e
-            message.log_error(e)
-            puts " [*] SOFTFAIL ERROR : #{e.message}"
-            if message.errors.count >= max_attempts
-              puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
-            else
 
-              send_to_deferred_queue(message)
-            end
-          rescue HardfailError => e
-             puts " [*] SOFTFAIL ERROR : #{e.message}"
-             puts " [*] DISCARD MESSAGE"          
-          end
+          call_message_handler(message_handler, message)
 
           ch.ack(delivery_info.delivery_tag)
         end
@@ -75,6 +58,37 @@ class GorgService
           @rmq_connection.start
           @rmq_connection
         end
+    end
+
+    def call_message_handler(message_handler, message)
+      begin
+        raise HardfailError.new(), "Routing error" unless message_handler
+          message_handler.new(message)
+
+      rescue SoftfailError => e
+        message.log_error(e)
+        process_softfail(e,message)
+
+      rescue HardfailError => e
+        message.log_error(e)
+        process_hardfail(e)      
+      end
+    end
+
+    def process_softfail(e,message)
+        puts " [*] SOFTFAIL ERROR : #{e.message}"
+        puts @max_attempts
+        puts message.errors.count
+        if message.errors.count >= @max_attempts
+          puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
+        else
+          send_to_deferred_queue(message)
+        end
+    end
+
+    def process_hardfail(e)
+      puts " [*] SOFTFAIL ERROR : #{e.message}"
+      puts " [*] DISCARD MESSAGE"    
     end
 
     def send_to_deferred_queue(msg)

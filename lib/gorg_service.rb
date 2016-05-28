@@ -6,8 +6,9 @@ require "gorg_service/message"
 require "gorg_service/message_handler"
 
 class GorgService
-  def initialize()
-    @listener=Listener.new(
+  def initialize(listener: nil)
+
+    @listener= listener || Listener.new(
       message_handler_map:GorgService.configuration.message_handler_map,
       host: GorgService.configuration.rabbitmq_host,
       port: GorgService.configuration.rabbitmq_port,

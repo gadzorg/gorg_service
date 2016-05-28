@@ -1,5 +1,5 @@
 # GorgService
-[![Code Climate](https://codeclimate.com/github/Zooip/gorg_service/badges/gpa.svg)](https://codeclimate.com/github/Zooip/gorg_service) [![Test Coverage](https://codeclimate.com/github/Zooip/gorg_service/badges/coverage.svg)](https://codeclimate.com/github/Zooip/gorg_service/coverage) [![Build Status](https://travis-ci.org/Zooip/gorg_service.svg?branch=master)](https://travis-ci.org/Zooip/gorg_service)
+[![Code Climate](https://codeclimate.com/github/Zooip/gorg_service/badges/gpa.svg)](https://codeclimate.com/github/Zooip/gorg_service) [![Test Coverage](https://codeclimate.com/github/Zooip/gorg_service/badges/coverage.svg)](https://codeclimate.com/github/Zooip/gorg_service/coverage) [![Build Status](https://travis-ci.org/Zooip/gorg_service.svg?branch=master)](https://travis-ci.org/Zooip/gorg_service) [![Gem Version](https://badge.fury.io/rb/gorg_service.svg)](https://badge.fury.io/rb/gorg_service) [![Dependency Status](https://gemnasium.com/badges/github.com/Zooip/gorg_service.svg)](https://gemnasium.com/github.com/Zooip/gorg_service)
 Standard RabbitMQ bot used in Gadz.org SOA
 
 ## Installation
