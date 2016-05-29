@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "codeclimate-test-reporter", "~> 3.0"
   spec.add_development_dependency 'bogus', '~> 0.1.6'
+  spec.add_development_dependency 'bunny-mock', '~> 1.4'
 end

@@ -23,14 +23,6 @@ class GorgService
       @errors=errors
     end
 
-    # Generate new id
-    #
-    # TODO
-    #  Avoid using AppConfig
-    def generate_id 
-      "#{GorgService.configuration.application_id}_#{Time.now.to_i}"
-    end
-
     # Generate RabbitMQ message body
     def to_str
       body={
@@ -74,7 +66,7 @@ class GorgService
           )
 
       rescue JSON::ParserError => e
-        raise HardfailError(e), "Unprocessable message : Unable to parse JSON message body"
+        raise GorgService::HardfailError.new(e), "Unprocessable message : Unable to parse JSON message body"
       end
     end
 
@@ -91,6 +83,14 @@ class GorgService
       end
       s2s[input_hash]
     end
+
+    private
+
+    # Generate new id
+    def generate_id 
+      "#{GorgService.configuration.application_id}_#{Time.now.to_i}"
+    end
+
    
 
   end

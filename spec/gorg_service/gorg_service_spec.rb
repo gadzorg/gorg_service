@@ -2,14 +2,15 @@ require 'spec_helper'
 
 describe GorgService do
   fake(:listener) { GorgService::Listener }
+  fake(:bunny_session) { Bunny::Session }
 
   it 'has a version number' do
     expect(GorgService::VERSION).not_to be nil
   end
 
   it 'call run on Listener' do
-    service= GorgService.new(listener: listener)
-    service.run
+    service= GorgService.new(listener: listener, bunny_session: bunny_session)
+    service.start
     expect(listener).to have_received.listen()
   end
 
@@ -39,7 +40,6 @@ describe GorgService do
     expect(GorgService.configuration.rabbitmq_user).to           eq("my_user")
     expect(GorgService.configuration.rabbitmq_password).to       eq("P4ssWord")
     expect(GorgService.configuration.message_handler_map).to     eq({"routting_key" => Class})
-
   end
 
 

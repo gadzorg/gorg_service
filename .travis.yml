@@ -5,3 +5,8 @@ before_install: gem install bundler -v 1.11.2
 addons:
     code_climate:
         repo_token: 8a2a969cd1d481fbc952943cc27b54584b2f27217ea2e2905e77652d44c502be
+before_script:
+  - cp spec/gorg_service/support/conf/rabbit_mq.yml.travis spec/gorg_service/support/conf/rabbit_mq.yml
+sudo: required
+services:
+  - rabbitmq

@@ -6,16 +6,13 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(host: "localhost", port: 5672, queue_name: "gapps", rabbitmq_user: nil, rabbitmq_password: nil, exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48)
-      @host=host
-      @port=port
+    def initialize(bunny_session: nil,queue_name: "gapps", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48)
       @queue_name=queue_name
       @exchange_name=exchange_name
-      @rabbitmq_user=rabbitmq_user
-      @rabbitmq_password=rabbitmq_password
       @message_handler_map=message_handler_map
       @deferred_time=deferred_time
       @max_attempts=max_attempts
+      @rmq_connection=bunny_session
     end
 
     def listen
@@ -31,33 +28,24 @@ class GorgService
 
       q.bind(@exchange_name, :routing_key => '#')
 
-      puts " [*] Waiting for messages in #{q.name}. To exit press CTRL+C"
       ch.prefetch(1)
 
-      begin
-        q.subscribe(:manual_ack => true, :block => true) do |delivery_info, properties, body|
-          routing_key=delivery_info[:routing_key]
-          puts " [#] Received message with routing key #{routing_key} containing : #{body}"
-          message_handler=message_handler_for routing_key
-          message=Message.parse_body(body)
+      q.subscribe(:manual_ack => true) do |delivery_info, properties, body|
+        routing_key=delivery_info[:routing_key]
+        puts " [#] Received message with routing key #{routing_key} containing : #{body}"
+        message_handler=message_handler_for routing_key
+        message=Message.parse_body(body)
 
-          call_message_handler(message_handler, message)
+        call_message_handler(message_handler, message)
 
-          ch.ack(delivery_info.delivery_tag)
-        end
-      rescue Interrupt => _
-        conn.close
+        ch.ack(delivery_info.delivery_tag)
       end
+
     end
 
     def rmq_connection
-        if @rmq_connection
-          @rmq_connection
-        else
-          @rmq_connection=Bunny.new(:hostname => @host, :user => @rabbitmq_user, :pass => @rabbitmq_password)
-          @rmq_connection.start
-          @rmq_connection
-        end
+      @rmq_connection.start unless @rmq_connection.connected?
+      @rmq_connection
     end
 
     def call_message_handler(message_handler, message)
@@ -77,8 +65,6 @@ class GorgService
 
     def process_softfail(e,message)
         puts " [*] SOFTFAIL ERROR : #{e.message}"
-        puts @max_attempts
-        puts message.errors.count
         if message.errors.count >= @max_attempts
           puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
         else

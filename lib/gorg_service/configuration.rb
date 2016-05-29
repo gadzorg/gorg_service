@@ -8,6 +8,7 @@ class GorgService
 
 
     def configure
+      @configuration = Configuration.new
       yield(configuration)
     end
   end
@@ -23,6 +24,7 @@ class GorgService
                   :rabbitmq_max_attempts,
                   :rabbitmq_user,
                   :rabbitmq_password,
+                  :rabbitmq_vhost,
                   :message_handler_map,
 
 
@@ -38,6 +40,7 @@ class GorgService
       @rabbitmq_exchange_name  = "exchange"
       @rabbitmq_user           = nil
       @rabbitmq_password       = nil
+      @rabbitmq_vhost          = "/"
       @rabbitmq_max_attempts   = 48         #24h with default timeout
     end
   end
