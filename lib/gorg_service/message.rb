@@ -2,6 +2,7 @@
 # encoding: utf-8
 require 'json'
 require 'time'
+require 'json-schema'
 
 require "gorg_service/message/json_schema"
 
