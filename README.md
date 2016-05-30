@@ -131,12 +131,14 @@ Each one of this helpers expect two params :
 ### Message structure
 `GorgService::Message` is defined [here](https://github.com/Zooip/gorg_service/blob/master/lib/gorg_service/message.rb)
 
-It provides 4 attributes :
+It provides the following attributes :
 
  - `event` : this is the same as the routing key
  - `id`: message UUID
  - `errors`: `Hash` containing the message error log with previous errors
  - `data`: `Hash` containing the data to be processed
+ - `creation_time`: message emission date as `DateTime`
+ - `sender` : message producer id
 
 ## Development
 
