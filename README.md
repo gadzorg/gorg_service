@@ -126,7 +126,7 @@ As showed in this example,`GorgService::MessageHandler` provides 2 helpers :
 Each one of this helpers expect two params :
 
  - `message` : The information to be displayed in message's error log
- - `exception` (optional) : The runtime esception causing the hardfail, for debug purpose
+ - `exception` (optional) : The runtime exception causing the fail, for debug purpose
 
 ### Message structure
 `GorgService::Message` is defined [here](https://github.com/Zooip/gorg_service/blob/master/lib/gorg_service/message.rb)
