@@ -34,6 +34,10 @@ class SoftfailMessageHandler < GorgService::MessageHandler
     @@message
   end
 
+  def self.reset
+    @@attempts=0
+  end
+
 end
 
 class HardfailMessageHandler < GorgService::MessageHandler
@@ -58,68 +62,142 @@ describe "Integrations tests" do
   end
 
   before(:each) do
+    SoftfailMessageHandler.reset
+  end
 
-    @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
-    @exchange_name="testing_exchange_#{@test_session_uuid}"
+  describe 'no wildcard routing key' do
+    before(:each) do
 
-    GorgService.configuration=nil
-    GorgService.configure do |c|
-      c.application_name="GoogleDirectoryDaemon-test"
-      c.application_id="gdd-testing"
-      c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
-      c.rabbitmq_port=RabbitmqConfig.value_at("r_port")
-      c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
-      c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
-      c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
-      c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
-      c.rabbitmq_exchange_name=@exchange_name
-      c.rabbitmq_deferred_time=100
-      c.rabbitmq_max_attempts=3
-      c.message_handler_map={"testing_key"=> handler}
+      @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
+      @exchange_name="testing_exchange_#{@test_session_uuid}"
 
-      @service=GorgService.new
-      @sender=MessageSender.new(
-        r_host:RabbitmqConfig.value_at("r_host"),
-        r_port:RabbitmqConfig.value_at("r_port"),
-        r_user:RabbitmqConfig.value_at("r_user"),
-        r_pass:RabbitmqConfig.value_at("r_pass"),
-        r_vhost:RabbitmqConfig.value_at("r_vhost"),
-        r_exchange: @exchange_name
-        )
+      GorgService.configuration=nil
+      GorgService.configure do |c|
+        c.application_name="GoogleDirectoryDaemon-test"
+        c.application_id="gdd-testing"
+        c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
+        c.rabbitmq_port=RabbitmqConfig.value_at("r_port")
+        c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
+        c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
+        c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
+        c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
+        c.rabbitmq_exchange_name=@exchange_name
+        c.rabbitmq_deferred_time=100
+        c.rabbitmq_max_attempts=3
+        c.message_handler_map={"testing_key"=> handler}
+
+        @service=GorgService.new
+        @sender=MessageSender.new(
+          r_host:RabbitmqConfig.value_at("r_host"),
+          r_port:RabbitmqConfig.value_at("r_port"),
+          r_user:RabbitmqConfig.value_at("r_user"),
+          r_pass:RabbitmqConfig.value_at("r_pass"),
+          r_vhost:RabbitmqConfig.value_at("r_vhost"),
+          r_exchange: @exchange_name
+          )
+      end
+    end
+
+    describe "simple message handler" do
+
+      let(:handler) {SimpleMessageHandler}
+
+      it "Send message to MessageHandler" do
+        puts "test_id : #{test_id}"
+        @service.start
+        @sender.send({test_data: "testing_message"},"testing_key")
+
+        sleep(1)
+
+        expect(handler.message.data).to eq({test_data: "testing_message"})
+
+        @service.stop
+      end
+    end
+
+    describe "softfail" do
+      let(:handler) {SoftfailMessageHandler}
+
+      it "retry 3 times" do
+        puts "test_id : #{test_id}"
+        @service.start
+        @sender.send({test_data: "testing_message"},"testing_key")
+
+        sleep(2)
+
+        expect(handler.message.data).to eq({test_data: "testing_message"})
+        expect(handler.attempts).to eq(3)
+
+        @service.stop
+      end
     end
   end
 
-  describe "simple message handler" do
+  describe 'with wildcard routing key' do
+    before(:each) do
 
-    let(:handler) {SimpleMessageHandler}
+      @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
+      @exchange_name="testing_exchange_#{@test_session_uuid}"
 
-    it "Send message to MessageHandler" do
-      puts "test_id : #{test_id}"
-      @service.start
-      @sender.send({test_data: "testing_message"},"testing_key")
+      GorgService.configuration=nil
+      GorgService.configure do |c|
+        c.application_name="GoogleDirectoryDaemon-test"
+        c.application_id="gdd-testing"
+        c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
+        c.rabbitmq_port=RabbitmqConfig.value_at("r_port")
+        c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
+        c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
+        c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
+        c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
+        c.rabbitmq_exchange_name=@exchange_name
+        c.rabbitmq_deferred_time=100
+        c.rabbitmq_max_attempts=3
+        c.message_handler_map={"*.testing_key.#"=> handler}
 
-      sleep(1)
-
-      expect(handler.message.data).to eq({test_data: "testing_message"})
-
-      @service.stop
+        @service=GorgService.new
+        @sender=MessageSender.new(
+          r_host:RabbitmqConfig.value_at("r_host"),
+          r_port:RabbitmqConfig.value_at("r_port"),
+          r_user:RabbitmqConfig.value_at("r_user"),
+          r_pass:RabbitmqConfig.value_at("r_pass"),
+          r_vhost:RabbitmqConfig.value_at("r_vhost"),
+          r_exchange: @exchange_name
+          )
+      end
     end
-  end
 
-  describe "softfail" do
-    let(:handler) {SoftfailMessageHandler}
+    describe "simple message handler" do
 
-    it "retry 3 times" do
-      puts "test_id : #{test_id}"
-      @service.start
-      @sender.send({test_data: "testing_message"},"testing_key")
+      let(:handler) {SimpleMessageHandler}
 
-      sleep(2)
+      it "Send message to MessageHandler" do
+        puts "test_id : #{test_id}"
+        @service.start
+        @sender.send({test_data: "testing_message"},"my.testing_key.is.awesome")
 
-      expect(handler.message.data).to eq({test_data: "testing_message"})
-      expect(handler.attempts).to eq(3)
+        sleep(1)
 
-      @service.stop
+        expect(handler.message.data).to eq({test_data: "testing_message"})
+
+        @service.stop
+      end
+    end
+
+    describe "softfail" do
+      let(:handler) {SoftfailMessageHandler}
+
+      it "retry 3 times" do
+        puts "test_id : #{test_id}"
+        @service.start
+        @sender.send({test_data: "testing_message"},"my.testing_key")
+
+        sleep(2)
+
+        expect(handler.message.data).to eq({test_data: "testing_message"})
+        expect(handler.attempts).to eq(3)
+
+        @service.stop
+      end
     end
   end
 end

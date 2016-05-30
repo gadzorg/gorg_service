@@ -93,7 +93,17 @@ class GorgService
     end
 
     def message_handler_for routing_key
-      @message_handler_map[routing_key]
+      @message_handler_map.each do |k,mh|
+        return mh if self.class.amqp_key_to_regex(k).match(routing_key)
+      end
+    end
+
+    def self.amqp_key_to_regex(key)
+      regex_base=key.gsub('.','\.')
+                     .gsub('*','([a-zA-Z0-9\-_:]+)')
+                     .gsub(/(\\\.)?#(\\\.)?/,'((\.)?[a-zA-Z0-9\-_:]*(\.)?)*')
+
+      /^#{regex_base}$/
     end
 
   end
