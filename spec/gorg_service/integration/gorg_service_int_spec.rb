@@ -48,7 +48,18 @@ describe "Integrations tests" do
 
   let!(:test_id) {$count += 1}
 
+  before(:all) do
+
+    @test_session_uuid="testing_exchange_#{SecureRandom.uuid}"
+    puts "Using UUID : #{ @test_session_uuid}"
+
+  end
+
   before(:each) do
+
+    @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
+    @exchange_name="testing_exchange_#{@test_session_uuid}"
+
     GorgService.configuration=nil
     GorgService.configure do |c|
       c.application_name="GoogleDirectoryDaemon-test"
@@ -58,8 +69,8 @@ describe "Integrations tests" do
       c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
       c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
       c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
-      c.rabbitmq_queue_name="testing_queue_#{test_id}" #change queue to avoid collision between tests
-      c.rabbitmq_exchange_name="testing_exchange"
+      c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
+      c.rabbitmq_exchange_name=@exchange_name
       c.rabbitmq_deferred_time=100
       c.rabbitmq_max_attempts=3
       c.message_handler_map={"testing_key"=> handler}
@@ -71,7 +82,7 @@ describe "Integrations tests" do
         r_user:RabbitmqConfig.value_at("r_user"),
         r_pass:RabbitmqConfig.value_at("r_pass"),
         r_vhost:RabbitmqConfig.value_at("r_vhost"),
-        r_exchange: "testing_exchange"
+        r_exchange: @exchange_name
         )
     end
   end

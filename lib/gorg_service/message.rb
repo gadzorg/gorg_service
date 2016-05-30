@@ -3,6 +3,8 @@
 require 'json'
 require 'time'
 
+require "gorg_service/message/json_schema"
+
 class GorgService
   class Message
 
@@ -10,24 +12,30 @@ class GorgService
     attr_accessor :id
     attr_accessor :data
     attr_accessor :errors
+    attr_accessor :creation_time
+    attr_accessor :sender
 
     def errors
       @errors||=[]
     end
 
 
-    def initialize(id: nil, data: nil, event: nil, errors: [])
-      @id=id || generate_id
+    def initialize(id: generate_id, data: nil, event: nil, creation_time: DateTime.now.iso8601, sender: application_id ,  errors: [])
+      @id=id
       @event=event
       @data=data
       @errors=errors
+      @creation_time=creation_time
+      @sender= sender
     end
 
     # Generate RabbitMQ message body
     def to_json
       body={
-        id: @id,
-        event: @event,
+        event_uuid: @id,
+        event_name: @event,
+        event_sender_id: @sender,
+        event_creation_time: @creation_time,
         data: @data,
       }
       if errors.any?
@@ -39,12 +47,16 @@ class GorgService
 
     # Log FailError in message body
     def log_error error
-      errors<<{
-            type: error.type.downcase,
-            message: error.message,
-            timestamp: Time.now.utc.iso8601,
-            extra: error.error_raised.inspect,
+      hsh={
+            error_type: error.type.downcase,
+            error_uuid: generate_id,
+            error_sender: application_id ,
+            error_message: error.message||"",
+            timestamp: DateTime.now.iso8601,
+            error_debug: {internal_error: error.error_raised.inspect},
           }
+      hsh[:error_debug] = {internal_error: error.error_raised.inspect} if error.error_raised
+      errors<<hsh
     end
 
     ### Class methods
@@ -58,10 +70,14 @@ class GorgService
       begin
         json_body=JSON.parse(body)
 
+        JSON::Validator.validate!(GorgService::Message::JSON_SCHEMA,json_body)
+
         msg=self.new(
-            id: json_body["id"],
-            event: json_body["event"],
+            id: json_body["event_uuid"],
+            event: json_body["event_name"],
             data: convert_keys_to_sym(json_body["data"]),
+            creation_time: json_body["event_creation_time"] && DateTime.parse(json_body["event_creation_time"]),
+            sender: json_body["event_sender_id"],
             errors: json_body["errors"]&&json_body["errors"].map{|e| convert_keys_to_sym(e)},
           )
 
@@ -92,7 +108,11 @@ class GorgService
 
     # Generate new id
     def generate_id 
-      "#{GorgService.configuration.application_id}_#{Time.now.to_i}"
+      SecureRandom.uuid()
+    end
+
+    def application_id
+      GorgService.configuration.application_id
     end
 
    

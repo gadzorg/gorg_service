@@ -4,16 +4,16 @@ describe GorgService::FailError do
 
   describe GorgService::SoftfailError do
 
-    it "has the softfail type" do
-      expect(GorgService::SoftfailError.new.type).to eq('softfail')
+    it "has the softerror type" do
+      expect(GorgService::SoftfailError.new.type).to eq('softerror')
     end
 
   end
 
   describe GorgService::HardfailError do
 
-    it "has the hardfail type" do
-      expect(GorgService::HardfailError.new.type).to eq('hardfail')
+    it "has the harderror type" do
+      expect(GorgService::HardfailError.new.type).to eq('harderror')
     end
 
   end

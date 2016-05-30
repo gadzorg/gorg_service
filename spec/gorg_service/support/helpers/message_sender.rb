@@ -13,9 +13,11 @@ class MessageSender
 
   def message(data,routing_key)
     {
-      "id": SecureRandom.uuid,
-      "event": routing_key,
-      "data": data,
+      "event_uuid" => SecureRandom.uuid,
+      "event_name" => routing_key,
+      "event_creation_time" => DateTime.now.iso8601,
+      "event_sender_id" => "tester",
+      "data"=> data,
     }.to_json
   end
 

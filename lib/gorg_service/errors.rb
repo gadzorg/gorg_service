@@ -24,14 +24,14 @@ class GorgService
   #Softfail error : This message should be processed again later
   class SoftfailError < FailError
     def type
-      "softfail"
+      "softerror"
     end
   end
 
   #Hardfail error : This message is not processable and will never be
   class HardfailError < FailError
     def type
-      "hardfail"
+      "harderror"
     end
   end
 end
