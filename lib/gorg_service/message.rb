@@ -3,6 +3,7 @@
 require 'json'
 require 'time'
 require 'json-schema'
+require 'securerandom'
 
 require "gorg_service/message/json_schema"
 

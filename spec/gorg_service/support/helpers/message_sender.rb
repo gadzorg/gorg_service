@@ -1,5 +1,6 @@
 require "bunny"
 require "json"
+require 'securerandom'
 
 class MessageSender
   def initialize(r_host: "localhost", r_port: "5672", r_user:nil, r_pass:nil, r_exchange:nil, r_vhost: "/")

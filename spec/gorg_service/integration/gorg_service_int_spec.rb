@@ -1,5 +1,7 @@
 require 'spec_helper'
 require 'bunny-mock'
+require 'securerandom'
+
 
 class SimpleMessageHandler < GorgService::MessageHandler
   
