@@ -89,7 +89,7 @@ class GorgService
           }
         )
       puts " [*] DEFER MESSAGE : message sent to #{@queue_name}_deferred qith routing key #{msg.event}"
-      q.publish(msg.to_str, :routing_key => msg.event)
+      q.publish(msg.to_json, :routing_key => msg.event)
     end
 
     def message_handler_for routing_key

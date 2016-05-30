@@ -8,14 +8,30 @@ class SimpleMessageHandler < GorgService::MessageHandler
   end
 
   def self.message
-    @@message
+    @@message||=""
   end
 end
 
 class SoftfailMessageHandler < GorgService::MessageHandler
   def initialize(msg)
+    @@message=msg
+    self.class.add_attempt
+    puts "attempts = self.attempts"
     raise_softfail(msg.event.to_s)
   end
+
+  def self.attempts
+    @@attempts||=0
+  end
+
+  def self.add_attempt
+    @@attempts = self.attempts + 1
+  end
+
+  def self.message
+    @@message
+  end
+
 end
 
 class HardfailMessageHandler < GorgService::MessageHandler
@@ -27,7 +43,11 @@ end
 
 
 
+$count = 0
 describe "Integrations tests" do
+
+  let!(:test_id) {$count += 1}
+
   before(:each) do
     GorgService.configuration=nil
     GorgService.configure do |c|
@@ -38,9 +58,9 @@ describe "Integrations tests" do
       c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
       c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
       c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
-      c.rabbitmq_queue_name="testing_queue"
+      c.rabbitmq_queue_name="testing_queue_#{test_id}" #change queue to avoid collision between tests
       c.rabbitmq_exchange_name="testing_exchange"
-      c.rabbitmq_deferred_time=1000
+      c.rabbitmq_deferred_time=100
       c.rabbitmq_max_attempts=3
       c.message_handler_map={"testing_key"=> handler}
 
@@ -61,8 +81,11 @@ describe "Integrations tests" do
     let(:handler) {SimpleMessageHandler}
 
     it "Send message to MessageHandler" do
+      puts "test_id : #{test_id}"
       @service.start
       @sender.send({test_data: "testing_message"},"testing_key")
+
+      sleep(1)
 
       expect(handler.message.data).to eq({test_data: "testing_message"})
 
@@ -70,5 +93,20 @@ describe "Integrations tests" do
     end
   end
 
+  describe "softfail" do
+    let(:handler) {SoftfailMessageHandler}
 
+    it "retry 3 times" do
+      puts "test_id : #{test_id}"
+      @service.start
+      @sender.send({test_data: "testing_message"},"testing_key")
+
+      sleep(2)
+
+      expect(handler.message.data).to eq({test_data: "testing_message"})
+      expect(handler.attempts).to eq(3)
+
+      @service.stop
+    end
+  end
 end

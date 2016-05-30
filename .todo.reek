@@ -1,0 +1,26 @@
+---
+Attribute:
+  exclude:
+  - GorgService#configuration
+  - GorgService::Configuration#application_id
+  - GorgService::Configuration#application_name
+  - GorgService::Configuration#message_handler_map
+  - GorgService::Configuration#rabbitmq_deferred_time
+  - GorgService::Configuration#rabbitmq_exchange_name
+  - GorgService::Configuration#rabbitmq_host
+  - GorgService::Configuration#rabbitmq_max_attempts
+  - GorgService::Configuration#rabbitmq_password
+  - GorgService::Configuration#rabbitmq_port
+  - GorgService::Configuration#rabbitmq_queue_name
+  - GorgService::Configuration#rabbitmq_user
+  - GorgService::Configuration#rabbitmq_vhost
+  - GorgService::Message#data
+  - GorgService::Message#errors
+  - GorgService::Message#event
+  - GorgService::Message#id
+TooManyInstanceVariables:
+  exclude:
+  - GorgService::Configuration
+ControlParameter:
+  exclude:
+  - GorgService::Message#initialize

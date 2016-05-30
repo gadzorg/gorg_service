@@ -24,7 +24,7 @@ class GorgService
     end
 
     # Generate RabbitMQ message body
-    def to_str
+    def to_json
       body={
         id: @id,
         event: @event,
@@ -40,7 +40,7 @@ class GorgService
     # Log FailError in message body
     def log_error error
       errors<<{
-            type: error.class.to_s.downcase,
+            type: error.type.downcase,
             message: error.message,
             timestamp: Time.now.utc.iso8601,
             extra: error.error_raised.inspect,
@@ -58,13 +58,17 @@ class GorgService
       begin
         json_body=JSON.parse(body)
 
-        self.new(
+        msg=self.new(
             id: json_body["id"],
             event: json_body["event"],
             data: convert_keys_to_sym(json_body["data"]),
-            errors: convert_keys_to_sym(json_body["errors"]),
+            errors: json_body["errors"]&&json_body["errors"].map{|e| convert_keys_to_sym(e)},
           )
 
+        msg.errors=msg.errors.each do |e|
+         e[:timestamp]=(e[:timestamp] ? DateTime.parse(e[:timestamp]) : nil)
+        end
+        msg
       rescue JSON::ParserError => e
         raise GorgService::HardfailError.new(e), "Unprocessable message : Unable to parse JSON message body"
       end

@@ -1,3 +1,4 @@
+# Add configuration features to GorgService
 class GorgService
   class << self
     attr_writer :configuration
@@ -13,6 +14,7 @@ class GorgService
     end
   end
 
+  # Hold configuration of GorgService in instance variables
   class Configuration
     attr_accessor :application_name,
                   :application_id,
@@ -25,11 +27,10 @@ class GorgService
                   :rabbitmq_user,
                   :rabbitmq_password,
                   :rabbitmq_vhost,
-                  :message_handler_map,
+                  :message_handler_map
 
 
     def initialize
-
       @application_name        = "GorgService"
       @application_id          = "gs" 
       @message_handler_map     = {}
