@@ -149,6 +149,7 @@ It provides the following attributes :
  - Internal logs using Logger
  - Class definition of messages error logs instead of Hash
  - Allow disable JSON Schema Validation on incomming messages
+ - Message and ErrorLog attributes validation
 
 ## Development
 
