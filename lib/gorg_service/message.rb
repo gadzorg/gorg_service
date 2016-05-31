@@ -6,6 +6,7 @@ require 'json-schema'
 require 'securerandom'
 
 require "gorg_service/message/json_schema"
+require "gorg_service/message/error_log"
 
 class GorgService
   class Message
@@ -26,7 +27,7 @@ class GorgService
       @id=id
       @event=event
       @data=data
-      @errors=errors
+      @errors=errors&&errors.map{|e| e.is_a?(GorgService::Message::ErrorLog) ? e : GorgService::Message::ErrorLog.parse(e)}
       @creation_time=creation_time
       @sender= sender
     end
@@ -41,7 +42,7 @@ class GorgService
       }
       if errors.any?
         body[:errors_count]=@errors.count
-        body[:errors]=@errors
+        body[:errors]=@errors.map{|e| e.to_h}
       end
       body
     end
@@ -53,16 +54,12 @@ class GorgService
 
     # Log FailError in message body
     def log_error error
-      hsh={
-            error_type: error.type.downcase,
-            error_uuid: generate_id,
-            error_sender: application_id ,
-            error_message: error.message||"",
-            timestamp: DateTime.now.iso8601,
-            error_debug: {internal_error: error.error_raised.inspect},
-          }
-      hsh[:error_debug] = {internal_error: error.error_raised.inspect} if error.error_raised
-      errors<<hsh
+      e=GorgService::Message::ErrorLog.new(
+        type: error.type.downcase,
+        message: error.message||"",
+        debug: error.error_raised && {internal_error: error.error_raised.inspect}
+        )
+      errors<<e
     end
 
     ### Class methods
@@ -78,18 +75,16 @@ class GorgService
 
         JSON::Validator.validate!(GorgService::Message::JSON_SCHEMA,json_body)
 
+        puts json_body["errors"].inspect
+
         msg=self.new(
             id: json_body["event_uuid"],
             event: json_body["event_name"],
             data: convert_keys_to_sym(json_body["data"]),
             creation_time: json_body["event_creation_time"] && DateTime.parse(json_body["event_creation_time"]),
             sender: json_body["event_sender_id"],
-            errors: json_body["errors"]&&json_body["errors"].map{|e| convert_keys_to_sym(e)},
+            errors: json_body["errors"]&&json_body["errors"].map{|e| GorgService::Message::ErrorLog.parse(e)},
           )
-
-        msg.errors=msg.errors.each do |e|
-         e[:timestamp]=(e[:timestamp] ? DateTime.parse(e[:timestamp]) : nil)
-        end
         msg
       rescue JSON::ParserError => e
         raise GorgService::HardfailError.new(e), "Unprocessable message : Unable to parse JSON message body"

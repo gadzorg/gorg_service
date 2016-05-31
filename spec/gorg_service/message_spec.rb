@@ -16,10 +16,11 @@ describe GorgService::Message do
 
     msg.log_error(softfail_error)
     expect(msg.errors.count).to eq(1)
-    expect(msg.errors.first[:error_type]).to eq("softerror")
-    expect(msg.errors.first[:error_message]).to eq("test_error")
-    expect(msg.errors.first[:error_debug][:internal_error]).to include("StandardError")
-    expect(msg.errors.first[:error_debug][:internal_error]).to include("This is the runtime error")
+    expect(msg.errors.first).to have_attributes(type: "softerror",
+                                                message:"test_error",
+                                                debug: an_instance_of(Hash))
+    expect(msg.errors.first.debug[:internal_error]).to include("StandardError")
+    expect(msg.errors.first.debug[:internal_error]).to include("This is the runtime error")
   end
 
   describe "parse JSON" do
@@ -66,12 +67,12 @@ describe GorgService::Message do
         expect(msg.sender).to eq("tester")
         expect(msg.data).to eq({"test_data":"testing_message"})
         expect(msg.errors.count).to eq(1)
-        expect(msg.errors.first[:error_type]).to eq("softerror")
-        expect(msg.errors.first[:error_message]).to eq("test_error")
-        expect(msg.errors.first[:error_debug]).to eq({})
-        expect(msg.errors.first[:error_uuid]).to eq("88d838a1-c77c-44e6-ad0c-8aa893468e94")
-        expect(msg.errors.first[:error_sender]).to eq("a_sender")
-        expect(msg.errors.first[:timestamp]).to eq(DateTime.new(2016,5,29,15,03,50))
+        expect(msg.errors.first).to have_attributes(type: "softerror",
+                                                message:"test_error",
+                                                debug: {},
+                                                id:"88d838a1-c77c-44e6-ad0c-8aa893468e94",
+                                                sender:"a_sender",
+                                                timestamp:DateTime.new(2016,5,29,15,03,50))
     end
   end
 
@@ -85,13 +86,14 @@ describe GorgService::Message do
           creation_time: DateTime.new(2016,5,29,15,03,50),
           data:{"test_data":"testing_message"},
           errors:[
-            {error_type: "softerror",
-             error_uuid: "88d838a1-c77c-44e6-ad0c-8aa893468e94",
-             error_sender: "a_sender",
-             error_message: "test_error",
-             timestamp: "2016-05-29T15:03:50Z",
-             error_debug: {}
-            }
+            GorgService::Message::ErrorLog.new(
+                type: "softerror",
+                id: "88d838a1-c77c-44e6-ad0c-8aa893468e94",
+                sender:  "a_sender",
+                message: "test_error",
+                timestamp: DateTime.new(2016,5,29,15,03,50),
+                debug: {}
+              )
           ]
         )}
 
@@ -116,7 +118,7 @@ describe GorgService::Message do
             "error_uuid" => "88d838a1-c77c-44e6-ad0c-8aa893468e94",
             "error_sender" => "a_sender",
             "error_message" => "test_error",
-            "timestamp" => "2016-05-29T15:03:50Z",
+            "timestamp" => "2016-05-29T15:03:50+00:00",
             "error_debug" => {}
             }
           ]

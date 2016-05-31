@@ -139,10 +139,18 @@ It provides the following attributes :
 
  - `event` : this is the same as the routing key
  - `id`: message UUID
- - `errors`: `Hash` containing the message error log with previous errors
+ - `errors`: A list of `GorgService::Message::ErrorLog`
  - `data`: `Hash` containing the data to be processed
  - `creation_time`: message emission date as `DateTime`
  - `sender` : message producer id
+
+Error log structure :
+
+ - `id` : Error uuid
+ - `type` : Type of error (debug, info, warning, softerror, harderror)
+ - `sender` : Id of service emitting this error
+ - `message` : Error message
+ - `debug` : Hash containing debug infos
 
 ## Development
 
