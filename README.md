@@ -144,6 +144,12 @@ It provides the following attributes :
  - `creation_time`: message emission date as `DateTime`
  - `sender` : message producer id
 
+## To Do
+
+ - Internal logs using Logger
+ - Class definition of messages error logs instead of Hash
+ - Allow disable JSON Schema Validation on incomming messages
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
