@@ -144,6 +144,7 @@ It provides the following attributes :
  - `creation_time`: message emission date as `DateTime`
  - `sender` : message producer id
 
+
 Error log structure :
 
  - `id` : Error uuid
@@ -151,6 +152,12 @@ Error log structure :
  - `sender` : Id of service emitting this error
  - `message` : Error message
  - `debug` : Hash containing debug infos
+
+## To Do
+
+ - Internal logs using Logger
+ - Allow disable JSON Schema Validation on incomming messages
+ - Message and ErrorLog attributes validation
 
 ## Development
 
