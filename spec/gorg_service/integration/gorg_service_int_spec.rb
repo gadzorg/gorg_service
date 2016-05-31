@@ -135,6 +135,7 @@ describe "Integrations tests" do
       it "Send message to MessageHandler" do
         puts "test_id : #{test_id}"
         @sender.send({test_data: "testing_message"},"testing_key")
+        sleep(1)
         expect(handler.message.data).to eq({test_data: "testing_message"})
       end
     end
@@ -221,6 +222,7 @@ describe "Integrations tests" do
       it "Send message to MessageHandler" do
         puts "test_id : #{test_id}"
         @sender.send({test_data: "testing_message"},"my.testing_key.is.awesome")
+        sleep(1)
         expect(handler.message.data).to eq({test_data: "testing_message"})
       end
     end
