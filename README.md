@@ -52,6 +52,10 @@ GorgService.configure do |c|
   # maximum number of try before discard a message
   # c.rabbitmq_max_attempts = 48 # 24h with default deferring delay
   #
+  # The routing key used when sending a message to the central log system (Hardfail or Warning)
+  # Central logging is disable if nil
+  # c.log_routing_key = nil
+  #
   # Routing hash
   #  map routing_key of received message with MessageHandler 
   #  exemple:

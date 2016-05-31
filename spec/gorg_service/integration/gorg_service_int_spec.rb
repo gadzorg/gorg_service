@@ -1,6 +1,6 @@
 require 'spec_helper'
-require 'bunny-mock'
 require 'securerandom'
+require 'gorg_message_sender'
 
 
 class SimpleMessageHandler < GorgService::MessageHandler
@@ -11,6 +11,25 @@ class SimpleMessageHandler < GorgService::MessageHandler
 
   def self.message
     @@message||=""
+  end
+
+  def self.reset
+    @@message=nil
+  end
+end
+
+class LogMessageHandler < GorgService::MessageHandler
+  
+  def initialize(msg)
+    @@message=msg
+  end
+
+  def self.message
+    @@message||=""
+  end
+
+  def self.reset
+    @@message=nil
   end
 end
 
@@ -36,6 +55,7 @@ class SoftfailMessageHandler < GorgService::MessageHandler
 
   def self.reset
     @@attempts=0
+    @@message=nil
   end
 
 end
@@ -63,6 +83,8 @@ describe "Integrations tests" do
 
   before(:each) do
     SoftfailMessageHandler.reset
+    SimpleMessageHandler.reset
+    LogMessageHandler.reset
   end
 
   describe 'no wildcard routing key' do
@@ -84,19 +106,27 @@ describe "Integrations tests" do
         c.rabbitmq_exchange_name=@exchange_name
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
-        c.message_handler_map={"testing_key"=> handler}
-
-        @service=GorgService.new
-        @sender=MessageSender.new(
-          r_host:RabbitmqConfig.value_at("r_host"),
-          r_port:RabbitmqConfig.value_at("r_port"),
-          r_user:RabbitmqConfig.value_at("r_user"),
-          r_pass:RabbitmqConfig.value_at("r_pass"),
-          r_vhost:RabbitmqConfig.value_at("r_vhost"),
-          r_exchange: @exchange_name
-          )
+        c.message_handler_map={"testing_key"=> handler,"log.routing.key"=>LogMessageHandler}
+        c.log_routing_key="log.routing.key"
       end
+        
+
+      @service=GorgService.new
+      @sender=GorgMessageSender.new(
+        host:RabbitmqConfig.value_at("r_host"),
+        port:RabbitmqConfig.value_at("r_port"),
+        user:RabbitmqConfig.value_at("r_user"),
+        pass:RabbitmqConfig.value_at("r_pass"),
+        vhost:RabbitmqConfig.value_at("r_vhost"),
+        exchange_name: @exchange_name
+        )
+      @service.start
     end
+
+    after(:each) do
+      @service.stop
+    end
+
 
     describe "simple message handler" do
 
@@ -104,32 +134,45 @@ describe "Integrations tests" do
 
       it "Send message to MessageHandler" do
         puts "test_id : #{test_id}"
-        @service.start
         @sender.send({test_data: "testing_message"},"testing_key")
-
-        sleep(1)
-
         expect(handler.message.data).to eq({test_data: "testing_message"})
-
-        @service.stop
       end
     end
 
     describe "softfail" do
       let(:handler) {SoftfailMessageHandler}
 
-      it "retry 3 times" do
+      before(:each) do
         puts "test_id : #{test_id}"
-        @service.start
+        @sender.send({test_data: "testing_message"},"testing_key")
+        sleep(1)
+      end
+
+      it "retry 3 times" do
+        expect(handler.message.data).to eq({test_data: "testing_message"})
+        expect(handler.attempts).to eq(3)
+      end
+
+      it "send error to logging key" do
+        expect(LogMessageHandler.message.data).to eq({test_data: "testing_message"})
+      end
+
+
+    end
+
+    describe "hardfail" do
+      let(:handler) {HardfailMessageHandler}
+
+      it "send error to logging key" do
+        puts "test_id : #{test_id}"
+
         @sender.send({test_data: "testing_message"},"testing_key")
 
         sleep(2)
 
-        expect(handler.message.data).to eq({test_data: "testing_message"})
-        expect(handler.attempts).to eq(3)
-
-        @service.stop
+        expect(LogMessageHandler.message.data).to eq({test_data: "testing_message"})
       end
+
     end
   end
 
@@ -153,17 +196,22 @@ describe "Integrations tests" do
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
         c.message_handler_map={"*.testing_key.#"=> handler}
-
-        @service=GorgService.new
-        @sender=MessageSender.new(
-          r_host:RabbitmqConfig.value_at("r_host"),
-          r_port:RabbitmqConfig.value_at("r_port"),
-          r_user:RabbitmqConfig.value_at("r_user"),
-          r_pass:RabbitmqConfig.value_at("r_pass"),
-          r_vhost:RabbitmqConfig.value_at("r_vhost"),
-          r_exchange: @exchange_name
-          )
       end
+
+      @service=GorgService.new
+      @sender=GorgMessageSender.new(
+        host:RabbitmqConfig.value_at("r_host"),
+        port:RabbitmqConfig.value_at("r_port"),
+        user:RabbitmqConfig.value_at("r_user"),
+        pass:RabbitmqConfig.value_at("r_pass"),
+        vhost:RabbitmqConfig.value_at("r_vhost"),
+        exchange_name: @exchange_name
+        )
+      @service.start
+    end
+
+    after(:each) do
+      @service.stop
     end
 
     describe "simple message handler" do
@@ -172,14 +220,8 @@ describe "Integrations tests" do
 
       it "Send message to MessageHandler" do
         puts "test_id : #{test_id}"
-        @service.start
         @sender.send({test_data: "testing_message"},"my.testing_key.is.awesome")
-
-        sleep(1)
-
         expect(handler.message.data).to eq({test_data: "testing_message"})
-
-        @service.stop
       end
     end
 
@@ -188,15 +230,12 @@ describe "Integrations tests" do
 
       it "retry 3 times" do
         puts "test_id : #{test_id}"
-        @service.start
         @sender.send({test_data: "testing_message"},"my.testing_key")
 
-        sleep(2)
+        sleep(1)
 
         expect(handler.message.data).to eq({test_data: "testing_message"})
         expect(handler.attempts).to eq(3)
-
-        @service.stop
       end
     end
   end

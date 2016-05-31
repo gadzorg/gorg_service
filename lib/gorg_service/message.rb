@@ -31,8 +31,7 @@ class GorgService
       @sender= sender
     end
 
-    # Generate RabbitMQ message body
-    def to_json
+    def to_h
       body={
         event_uuid: @id,
         event_name: @event,
@@ -44,7 +43,12 @@ class GorgService
         body[:errors_count]=@errors.count
         body[:errors]=@errors
       end
-      body.to_json
+      body
+    end
+
+    # Generate RabbitMQ message body
+    def to_json
+      self.to_h.to_json
     end
 
     # Log FailError in message body

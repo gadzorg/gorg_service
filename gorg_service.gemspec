@@ -28,12 +28,11 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'bunny', '~> 2.2', '>= 2.2.2'
   spec.add_dependency 'json-schema', '~> 2.6'
+  spec.add_dependency 'gorg_message_sender', '~> 0'
 
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "codeclimate-test-reporter", "~> 3.0"
+  spec.add_development_dependency "codeclimate-test-reporter", "~> 0.5.0"
   spec.add_development_dependency 'bogus', '~> 0.1.6'
-  spec.add_development_dependency 'bunny-mock', '~> 1.4'
-  spec.add_development_dependency 'byebug', '~> 9.0'
 end

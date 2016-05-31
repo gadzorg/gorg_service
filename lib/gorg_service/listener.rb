@@ -6,75 +6,93 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(bunny_session: nil,queue_name: "gapps", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48)
+    def initialize(bunny_session: nil,queue_name: "gapps", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48,log_routing_key:nil)
       @queue_name=queue_name
       @exchange_name=exchange_name
       @message_handler_map=message_handler_map
       @deferred_time=deferred_time
       @max_attempts=max_attempts
       @rmq_connection=bunny_session
+      @log_routing_key=log_routing_key
     end
 
     def listen
 
-      conn = rmq_connection
-      ch   = conn.create_channel
-      x    = ch.topic(@exchange_name, :durable => true)
-      q    = ch.queue(@queue_name, :durable => true)
-
-      @message_handler_map.keys.each do |routing_key|
-        q.bind(@exchange_name, :routing_key => routing_key)
-      end
-
-      q.bind(@exchange_name, :routing_key => '#')
-
-      ch.prefetch(1)
-
-      q.subscribe(:manual_ack => true) do |delivery_info, properties, body|
+      set_rabbitmq_env
+   
+      @q.subscribe(:manual_ack => true) do |delivery_info, _properties, body|
         routing_key=delivery_info[:routing_key]
         puts " [#] Received message with routing key #{routing_key} containing : #{body}"
-        message_handler=message_handler_for routing_key
-        message=Message.parse_body(body)
-
-        call_message_handler(message_handler, message)
-
-        ch.ack(delivery_info.delivery_tag)
+        process_message(body,routing_key)
+        @ch.ack(delivery_info.delivery_tag)
       end
-
     end
+
+    protected
 
     def rmq_connection
       @rmq_connection.start unless @rmq_connection.connected?
       @rmq_connection
     end
 
-    def call_message_handler(message_handler, message)
-      begin
-        raise HardfailError.new(), "Routing error" unless message_handler
-          message_handler.new(message)
+    def set_rabbitmq_env
+      conn = rmq_connection
+      @ch   = conn.create_channel
+      @ch.prefetch(1)
+      @ch.topic(@exchange_name, :durable => true)
+      @q    = @ch.queue(@queue_name, :durable => true)
 
+      @message_handler_map.keys.each do |routing_key|
+        @q.bind(@exchange_name, :routing_key => routing_key)
+      end
+    end
+
+    def process_message(body,routing_key)
+      message=nil
+      incomming_message_error_count=0
+      begin 
+        message_handler=message_handler_for routing_key
+        raise HardfailError.new("Routing error : No message handler finded for this routing key") unless message_handler
+
+        begin
+          message=Message.parse_body(body)
+        rescue JSON::ParserError => e
+          raise HardfailError.new("JSON Parse error : Can't parse incoming message",e)
+        rescue JSON::Schema::ValidationError => e
+          raise HardfailError.new("Invalid JSON : This message does not respect Gadz.org JSON Schema",e)
+        end
+        incomming_message_error_count=message.errors.count
+        message_handler.new(message)
+        process_logging(message) if message.errors.count>incomming_message_error_count
       rescue SoftfailError => e
-        message.log_error(e)
         process_softfail(e,message)
-
       rescue HardfailError => e
-        message.log_error(e)
-        process_hardfail(e)      
+        process_hardfail(e,message)
       end
     end
 
     def process_softfail(e,message)
+        message.log_error(e)
         puts " [*] SOFTFAIL ERROR : #{e.message}"
         if message.errors.count >= @max_attempts
           puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
+          process_hardfail(HardfailError.new("Too Much SoftError : This message reached the limit of softerror (max: #{@max_attempts})"),message)
         else
           send_to_deferred_queue(message)
         end
     end
 
-    def process_hardfail(e)
-      puts " [*] SOFTFAIL ERROR : #{e.message}"
-      puts " [*] DISCARD MESSAGE"    
+    def process_hardfail(e,message)
+      puts " [*] HARDFAIL ERROR : #{e.message}"
+      puts " [*] DISCARD MESSAGE"
+      if message
+        message.log_error(e)
+        process_logging(message)
+      end
+    end
+
+    def process_logging(message)
+      RabbitmqProducer.new.send_raw(message.to_json,@log_routing_key, verbose: true) if @log_routing_key
     end
 
     def send_to_deferred_queue(msg)

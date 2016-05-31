@@ -27,7 +27,8 @@ class GorgService
                   :rabbitmq_user,
                   :rabbitmq_password,
                   :rabbitmq_vhost,
-                  :message_handler_map
+                  :message_handler_map,
+                  :log_routing_key
 
 
     def initialize
@@ -43,6 +44,7 @@ class GorgService
       @rabbitmq_password       = nil
       @rabbitmq_vhost          = "/"
       @rabbitmq_max_attempts   = 48         #24h with default timeout
+      @log_routing_key         = nil
     end
   end
 end
