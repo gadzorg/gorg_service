@@ -81,7 +81,7 @@ my_service.run
 When running, GorgService act as a consumer on Gadz.org RabbitMQ network.
 It bind its queue on the main exchange and subscribes to routing keys defines in `message_handler_map`
 
-Each received message will be routed to the corresponding `MessageHandler`. AMQP wildcards are supported.The first key to match the incomiing routing key will be used.
+Each received message will be routed to the corresponding `MessageHandler`. AMQP wildcards are supported.The first key to match the incoming routing key will be used.
 
 A `MessageHandler` is a kind of controller. This is where you put the message is processed.
 A `MessageHandler` expect a `GorgService::Message` as param of its `initializer`method.
