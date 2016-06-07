@@ -42,6 +42,7 @@ GorgService.configure do |c|
   #
   # c.rabbitmq_host = "localhost"
   # c.rabbitmq_port = 5672
+  # c.rabbitmq_vhost = "/"
   #
   #
   # c.rabbitmq_queue_name = c.application_name
