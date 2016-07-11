@@ -6,7 +6,7 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(bunny_session: nil,queue_name: "gapps", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48,log_routing_key:nil)
+    def initialize(bunny_session: nil,queue_name: "gorg_service", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48,log_routing_key:nil)
       @queue_name=queue_name
       @exchange_name=exchange_name
       @message_handler_map=message_handler_map
@@ -22,7 +22,7 @@ class GorgService
    
       @q.subscribe(:manual_ack => true) do |delivery_info, _properties, body|
         routing_key=delivery_info[:routing_key]
-        puts " [#] Received message with routing key #{routing_key} containing : #{body}"
+        GorgService.logger.info "Received message with routing key #{routing_key} containing : #{body}"
         process_message(body,routing_key)
         @ch.ack(delivery_info.delivery_tag)
       end
@@ -73,9 +73,9 @@ class GorgService
 
     def process_softfail(e,message)
         message.log_error(e)
-        puts " [*] SOFTFAIL ERROR : #{e.message}"
+        GorgService.logger.error "SOFTFAIL ERROR : #{e.message}"
         if message.errors.count >= @max_attempts
-          puts " [*] DISCARD MESSAGE : #{message.errors.count} errors in message log"
+          GorgService.logger.info " DISCARD MESSAGE : #{message.errors.count} errors in message log"
           process_hardfail(HardfailError.new("Too Much SoftError : This message reached the limit of softerror (max: #{@max_attempts})"),message)
         else
           send_to_deferred_queue(message)
@@ -83,8 +83,8 @@ class GorgService
     end
 
     def process_hardfail(e,message)
-      puts " [*] HARDFAIL ERROR : #{e.message}"
-      puts " [*] DISCARD MESSAGE"
+      GorgService.logger.error "HARDFAIL ERROR : #{e.message}"
+      GorgService.logger.info " DISCARD MESSAGE"
       if message
         message.log_error(e)
         process_logging(message)
@@ -106,7 +106,7 @@ class GorgService
             'x-dead-letter-routing-key' => msg.event,
           }
         )
-      puts " [*] DEFER MESSAGE : message sent to #{@queue_name}_deferred qith routing key #{msg.event}"
+      GorgService.logger.info "DEFER MESSAGE : message sent to #{@queue_name}_deferred with routing key #{msg.event}"
       q.publish(msg.to_json, :routing_key => msg.event)
     end
 

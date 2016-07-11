@@ -68,4 +68,8 @@ class GorgService
   def stop
     @bunny_session.close
   end
+
+  def self.logger
+    GorgService.configuration.logger
+  end
 end

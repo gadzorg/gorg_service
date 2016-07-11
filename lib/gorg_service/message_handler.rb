@@ -5,7 +5,7 @@ class GorgService
   class MessageHandler
 
     def initialize(message)
-      puts "WARNING : Defined your MessageHandler behavior in its 'initialize' method"
+      GorgService.logger.warning "WARNING : Defined your MessageHandler behavior in its 'initialize' method"
     end
 
     def raise_hardfail(message, error:nil)

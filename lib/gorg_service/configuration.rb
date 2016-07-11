@@ -16,6 +16,7 @@ class GorgService
 
   # Hold configuration of GorgService in instance variables
   class Configuration
+    
     attr_accessor :application_name,
                   :application_id,
                   :rabbitmq_host,
@@ -28,10 +29,12 @@ class GorgService
                   :rabbitmq_password,
                   :rabbitmq_vhost,
                   :message_handler_map,
-                  :log_routing_key
+                  :log_routing_key,
+                  :logger
 
 
     def initialize
+      @logger                  = Logger.new(STDOUT)
       @application_name        = "GorgService"
       @application_id          = "gs" 
       @message_handler_map     = {}

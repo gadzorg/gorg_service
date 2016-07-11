@@ -11,3 +11,5 @@
 *.gem
 /bin/worker
 /spec/gorg_service/support/conf/rabbit_mq.yml
+
+.idea
