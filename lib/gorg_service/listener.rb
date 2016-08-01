@@ -98,7 +98,8 @@ class GorgService
     def send_to_deferred_queue(msg)
       conn=rmq_connection
       @delayed_chan||=conn.create_channel
-      q=@delayed_chan.queue("#{@queue_name}_deferred",
+      delayed_queue_name="#{msg.event.gsub(".","-")}_deferred"
+      q=@delayed_chan.queue(delayed_queue_name,
         durable: true,
         arguments: {
             'x-message-ttl' => @deferred_time,
