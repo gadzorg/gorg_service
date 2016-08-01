@@ -107,7 +107,7 @@ class GorgService
             'x-dead-letter-routing-key' => msg.event,
           }
         )
-      GorgService.logger.info "DEFER MESSAGE : message sent to #{@queue_name}_deferred with routing key #{msg.event}"
+      GorgService.logger.info "DEFER MESSAGE : message sent to #{delayed_queue_name} with routing key #{msg.event}"
       q.publish(msg.to_json, :routing_key => msg.event)
     end
 
