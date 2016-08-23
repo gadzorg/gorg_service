@@ -6,25 +6,21 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(bunny_session: nil,queue_name: "gorg_service", exchange_name: nil, message_handler_map: {default: DefaultMessageHandler}, deferred_time: 1800000, max_attempts: 48,log_routing_key:nil)
-      @queue_name=queue_name
-      @exchange_name=exchange_name
+    def initialize(bunny_session: nil, env: nil, message_handler_map: {default: DefaultMessageHandler}, max_attempts: 48,log_routing_key:nil)
       @message_handler_map=message_handler_map
-      @deferred_time=deferred_time
       @max_attempts=max_attempts
       @rmq_connection=bunny_session
       @log_routing_key=log_routing_key
+
+      @env=env
     end
 
-    def listen
-
-      set_rabbitmq_env
-   
-      @q.subscribe(:manual_ack => true) do |delivery_info, _properties, body|
+    def listen  
+      @env.job_queue.subscribe(:manual_ack => true) do |delivery_info, _properties, body|
         routing_key=delivery_info[:routing_key]
         GorgService.logger.info "Received message with routing key #{routing_key} containing : #{body}"
         process_message(body,routing_key)
-        @ch.ack(delivery_info.delivery_tag)
+        @env.ch.ack(delivery_info.delivery_tag)
       end
     end
 
@@ -33,18 +29,6 @@ class GorgService
     def rmq_connection
       @rmq_connection.start unless @rmq_connection.connected?
       @rmq_connection
-    end
-
-    def set_rabbitmq_env
-      conn = rmq_connection
-      @ch   = conn.create_channel
-      @ch.prefetch(1)
-      @ch.topic(@exchange_name, :durable => true)
-      @q    = @ch.queue(@queue_name, :durable => true)
-
-      @message_handler_map.keys.each do |routing_key|
-        @q.bind(@exchange_name, :routing_key => routing_key)
-      end
     end
 
     def process_message(body,routing_key)
@@ -96,19 +80,12 @@ class GorgService
     end
 
     def send_to_deferred_queue(msg)
-      conn=rmq_connection
-      @delayed_chan||=conn.create_channel
-      delayed_queue_name="#{msg.event.gsub(".","-")}_deferred"
-      q=@delayed_chan.queue(delayed_queue_name,
-        durable: true,
-        arguments: {
-            'x-message-ttl' => @deferred_time,
-            'x-dead-letter-exchange' => @exchange_name,
-            'x-dead-letter-routing-key' => msg.event,
-          }
-        )
-      GorgService.logger.info "DEFER MESSAGE : message sent to #{delayed_queue_name} with routing key #{msg.event}"
-      q.publish(msg.to_json, :routing_key => msg.event)
+      if @env.delayed_queue_for msg.event
+        @env.delayed_in_exchange.publish(msg.to_json, :routing_key => msg.event)
+        GorgService.logger.info "DEFER MESSAGE : message sent to #{@env.delayed_in_exchange.name} with routing key #{msg.event}"
+      else
+        raise "DelayedQueueNotFound"
+      end
     end
 
     def message_handler_for routing_key

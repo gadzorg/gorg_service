@@ -2,6 +2,7 @@ require "gorg_message_sender"
 require "gorg_service/configuration"
 require "gorg_service/version"
 require "gorg_service/errors"
+require "gorg_service/rabbitmq_env_builder"
 require "gorg_service/listener"
 require "gorg_service/message"
 require "gorg_service/message_handler"
@@ -20,12 +21,18 @@ class GorgService
       :vhost => GorgService.configuration.rabbitmq_vhost
       )
 
+    @env=RabbitmqEnvBuilder.new(
+      conn: @bunny_session,
+      main_exchange: GorgService.configuration.rabbitmq_exchange_name,
+      app_id:GorgService.configuration.application_id,
+      deferred_time: GorgService.configuration.rabbitmq_deferred_time,
+      listened_routing_keys: GorgService.configuration.message_handler_map.keys,
+    )
+
     @listener= listener || Listener.new(
       bunny_session: @bunny_session,
       message_handler_map:GorgService.configuration.message_handler_map,
-      queue_name: GorgService.configuration.rabbitmq_queue_name,
-      exchange_name: GorgService.configuration.rabbitmq_exchange_name,
-      deferred_time: GorgService.configuration.rabbitmq_deferred_time,
+      env: @env,
       max_attempts: GorgService.configuration.rabbitmq_max_attempts,
       log_routing_key: GorgService.configuration.log_routing_key
       )
