@@ -3,13 +3,14 @@ require 'spec_helper'
 describe GorgService do
   fake(:listener) { GorgService::Listener }
   fake(:bunny_session) { Bunny::Session }
+  fake(:env) { GorgService::RabbitmqEnvBuilder }
 
   it 'has a version number' do
     expect(GorgService::VERSION).not_to be nil
   end
 
   it 'call run on Listener' do
-    service= GorgService.new(listener: listener, bunny_session: bunny_session)
+    service= GorgService.new(listener: listener, bunny_session: bunny_session,rabbitmq_env: env)
     service.start
     expect(listener).to have_received.listen()
   end

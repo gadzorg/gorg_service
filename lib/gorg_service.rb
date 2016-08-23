@@ -11,7 +11,7 @@ require "gorg_service/message_handler"
 RabbitmqProducer=GorgMessageSender.dup
 
 class GorgService
-  def initialize(listener: nil, bunny_session: nil)
+  def initialize(listener: nil, bunny_session: nil, rabbitmq_env:nil)
 
     @bunny_session= bunny_session || Bunny.new(
       :hostname => GorgService.configuration.rabbitmq_host,
@@ -21,7 +21,7 @@ class GorgService
       :vhost => GorgService.configuration.rabbitmq_vhost
       )
 
-    @env=RabbitmqEnvBuilder.new(
+    @env=rabbitmq_env || RabbitmqEnvBuilder.new(
       conn: @bunny_session,
       main_exchange: GorgService.configuration.rabbitmq_exchange_name,
       app_id:GorgService.configuration.application_id,
