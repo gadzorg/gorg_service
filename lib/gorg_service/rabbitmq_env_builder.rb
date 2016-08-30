@@ -50,8 +50,8 @@ class GorgService
 
     def set_logger
       x=ch.fanout("log", :durable => true)
-      x.bind(main_exchange, :routing_key => "*")
-      x.bind(delayed_in_exchange, :routing_key => "*")
+      x.bind(main_exchange, :routing_key => "#")
+      x.bind(delayed_in_exchange, :routing_key => "#")
     end
 
     def create_delayed_queue_for(routing_key)
