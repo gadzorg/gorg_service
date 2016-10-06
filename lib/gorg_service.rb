@@ -25,7 +25,7 @@ class GorgService
       conn: @bunny_session,
       main_exchange: GorgService.configuration.rabbitmq_exchange_name,
       app_id:GorgService.configuration.application_id,
-      deferred_time: GorgService.configuration.rabbitmq_deferred_time,
+      deferred_time: GorgService.configuration.rabbitmq_deferred_time.to_i,
       listened_routing_keys: GorgService.configuration.message_handler_map.keys,
     )
 
@@ -33,7 +33,7 @@ class GorgService
       bunny_session: @bunny_session,
       message_handler_map:GorgService.configuration.message_handler_map,
       env: @env,
-      max_attempts: GorgService.configuration.rabbitmq_max_attempts,
+      max_attempts: GorgService.configuration.rabbitmq_max_attempts.to_i,
       log_routing_key: GorgService.configuration.log_routing_key
       )
 

@@ -8,7 +8,7 @@ class GorgService
 
     def initialize(bunny_session: nil, env: nil, message_handler_map: {default: DefaultMessageHandler}, max_attempts: 48,log_routing_key:nil)
       @message_handler_map=message_handler_map
-      @max_attempts=max_attempts
+      @max_attempts=max_attempts.to_i
       @rmq_connection=bunny_session
       @log_routing_key=log_routing_key
 
@@ -58,7 +58,7 @@ class GorgService
     def process_softfail(e,message)
         message.log_error(e)
         GorgService.logger.error "SOFTFAIL ERROR : #{e.message}"
-        if message.errors.count >= @max_attempts
+        if message.errors.count.to_i >= @max_attempts
           GorgService.logger.info " DISCARD MESSAGE : #{message.errors.count} errors in message log"
           process_hardfail(HardfailError.new("Too Much SoftError : This message reached the limit of softerror (max: #{@max_attempts})"),message)
         else
