@@ -27,6 +27,7 @@ class GorgService
       app_id:GorgService.configuration.application_id,
       deferred_time: GorgService.configuration.rabbitmq_deferred_time.to_i,
       listened_routing_keys: GorgService.configuration.message_handler_map.keys,
+      prefetch:GorgService.configuration.prefetch_count,
     )
 
     @listener= listener || Listener.new(

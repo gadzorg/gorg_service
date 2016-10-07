@@ -1,7 +1,7 @@
 class GorgService
   class RabbitmqEnvBuilder
 
-    def initialize(conn:nil,main_exchange:"", app_id:"", deferred_time: 10000, listened_routing_keys: [])
+    def initialize(conn:nil,main_exchange:"", app_id:"", deferred_time: 10000, listened_routing_keys: [], prefetch: 1)
       @_conn=conn
       @app_id=app_id
       @main_exchange_name=main_exchange
@@ -17,7 +17,11 @@ class GorgService
     end
 
     def ch
-      @_ch = (@_ch && @_ch.status == :open) ? @_ch : conn.create_channel
+      unless (@_ch && @_ch.status == :open)
+        @_ch=conn.create_channel
+        @_ch.prefetch(1)
+      end
+      @_ch
     end
 
     def main_exchange

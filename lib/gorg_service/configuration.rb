@@ -30,7 +30,8 @@ class GorgService
                   :rabbitmq_vhost,
                   :message_handler_map,
                   :log_routing_key,
-                  :logger
+                  :logger,
+                  :prefetch_count
 
 
     def initialize
@@ -48,6 +49,7 @@ class GorgService
       @rabbitmq_vhost          = "/"
       @rabbitmq_max_attempts   = 48         #24h with default timeout
       @log_routing_key         = nil
+      @prefetch_count          = 1
     end
   end
 end
