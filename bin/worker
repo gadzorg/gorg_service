@@ -11,7 +11,7 @@ require "gorg_service"
 # Pry.start
 
 #You should add a file bin/env.rb to set convenience environment such as configuration
-env_path=File.join(File.dirname(__FILE__),"/env.rb") 
+env_path=File.expand_path("./env.rb",File.dirname(__FILE__)) 
 require env_path if File.file?(env_path)
 
 GorgService.new.run
