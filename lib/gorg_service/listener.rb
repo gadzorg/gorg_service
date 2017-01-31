@@ -6,10 +6,8 @@ require "bunny"
 class GorgService
   class Listener
 
-    def initialize(bunny_session: nil, env: nil, message_handler_map: {default: DefaultMessageHandler}, max_attempts: 48,log_routing_key:nil)
-      @message_handler_map=message_handler_map
+    def initialize(env: nil, max_attempts: 48,log_routing_key:nil)
       @max_attempts=max_attempts.to_i
-      @rmq_connection=bunny_session
       @log_routing_key=log_routing_key
 
       @env=env
@@ -17,37 +15,31 @@ class GorgService
 
     def listen  
       @env.job_queue.subscribe(:manual_ack => true) do |delivery_info, _properties, body|
+        #Log
         routing_key=delivery_info[:routing_key]
         GorgService.logger.info "Received message with routing key #{routing_key} containing : #{body}"
-        process_message(body,routing_key)
+
+        #Process
+        process_message(delivery_info, _properties, body)
+
+        #Acknoledge
         @env.ch.ack(delivery_info.delivery_tag)
       end
     end
 
     protected
 
-    def rmq_connection
-      @rmq_connection.start unless @rmq_connection.connected?
-      @rmq_connection
-    end
-
-    def process_message(body,routing_key)
+    def process_message(delivery_info, _properties, body)
       message=nil
-      incomming_message_error_count=0
-      begin 
-        message_handler=message_handler_for routing_key
-        raise HardfailError.new("Routing error : No message handler finded for this routing key") unless message_handler
+      begin
+        #Parse message
+        message=Message.parse(delivery_info, _properties, body)
 
-        begin
-          message=Message.parse_body(body)
-        rescue JSON::ParserError => e
-          raise HardfailError.new("JSON Parse error : Can't parse incoming message",e)
-        rescue JSON::Schema::ValidationError => e
-          raise HardfailError.new("Invalid JSON : This message does not respect Gadz.org JSON Schema",e)
-        end
+        #Process message
         incomming_message_error_count=message.errors.count
-        message_handler.new(message)
+        MessageRouter.new(message)
         process_logging(message) if message.errors.count>incomming_message_error_count
+
       rescue SoftfailError => e
         process_softfail(e,message)
       rescue HardfailError => e
@@ -87,20 +79,5 @@ class GorgService
         raise "DelayedQueueNotFound"
       end
     end
-
-    def message_handler_for routing_key
-      @message_handler_map.each do |k,mh|
-        return mh if self.class.amqp_key_to_regex(k).match(routing_key)
-      end
-    end
-
-    def self.amqp_key_to_regex(key)
-      regex_base=key.gsub('.','\.')
-                     .gsub('*','([a-zA-Z0-9\-_:]+)')
-                     .gsub(/(\\\.)?#(\\\.)?/,'((\.)?[a-zA-Z0-9\-_:]*(\.)?)*')
-
-      /^#{regex_base}$/
-    end
-
   end
 end

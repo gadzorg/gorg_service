@@ -5,7 +5,7 @@ class GorgService
   class MessageHandler
 
     def initialize(message)
-      GorgService.logger.warning "WARNING : Defined your MessageHandler behavior in its 'initialize' method"
+      GorgService.logger.warning "WARNING : You must define your MessageHandler behavior in its 'initialize' method"
     end
 
     def raise_hardfail(message, error:nil)
@@ -14,6 +14,14 @@ class GorgService
 
     def raise_softfail(message, error:nil)
       raise SoftfailError.new(message, error)
+    end
+
+    class << self
+
+      def listen_to(routing_key)
+        MessageRouter.register_route(routing_key,self)
+      end
+
     end
 
   end

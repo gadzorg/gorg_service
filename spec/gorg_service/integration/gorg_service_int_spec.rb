@@ -4,8 +4,11 @@ require 'gorg_message_sender'
 
 
 class SimpleMessageHandler < GorgService::MessageHandler
+
+
   
   def initialize(msg)
+    GorgService.logger.debug "Message received in SimpleMessageHandler"
     @@message=msg
   end
 
@@ -19,8 +22,11 @@ class SimpleMessageHandler < GorgService::MessageHandler
 end
 
 class LogMessageHandler < GorgService::MessageHandler
+
+  listen_to "log.routing.key"
   
   def initialize(msg)
+    GorgService.logger.debug "Message received in LogMessageHandler"
     @@message=msg
   end
 
@@ -35,9 +41,10 @@ end
 
 class SoftfailMessageHandler < GorgService::MessageHandler
   def initialize(msg)
+    GorgService.logger.debug "Message received in SoftfailMessageHandler"
     @@message=msg
     self.class.add_attempt
-    puts "attempts = self.attempts"
+    puts "attempts = #{self.class.attempts}"
     raise_softfail(msg.event.to_s)
   end
 
@@ -62,6 +69,7 @@ end
 
 class HardfailMessageHandler < GorgService::MessageHandler
   def initialize(msg)
+    GorgService.logger.debug "Message received in HardfailMessageHandler"
     raise_hardfail(msg.event.to_s)
   end
 end
@@ -79,24 +87,81 @@ describe "Integrations tests" do
     @test_session_uuid="testing_exchange_#{SecureRandom.uuid}"
     puts "Using UUID : #{ @test_session_uuid}"
 
+    @opened_topic_exchanges=[]
+    @opened_fanout_exchanges=[]
+    @opened_job_queues=[]
+    @opened_deferred_queues=[]
+  end
+
+  after(:all) do
+    conn=Bunny.new(
+        :hostname => RabbitmqConfig.value_at("r_host"),
+        :port => RabbitmqConfig.value_at("r_port"),
+        :user => RabbitmqConfig.value_at("r_user"),
+        :pass => RabbitmqConfig.value_at("r_pass"),
+        :vhost => RabbitmqConfig.value_at("r_vhost"),
+    )
+
+    conn.start
+
+    c=conn.create_channel
+
+
+    @opened_topic_exchanges.each do |x|
+      c.topic(x,durable:true).delete
+    end
+    @opened_fanout_exchanges.each do |x|
+      c.fanout(x,durable:true).delete
+    end
+    @opened_job_queues.each do |q|
+      c.queue(q,durable:true).delete
+    end
+    @opened_deferred_queues.each do |q|
+      c.queue(q[:name],durable:true,arguments: q[:args]).delete
+    end
   end
 
   before(:each) do
     SoftfailMessageHandler.reset
     SimpleMessageHandler.reset
     LogMessageHandler.reset
+
+    GorgService::MessageRouter.routes.delete_if{|x|true}
+
+
+
+    @exchange_name="testing_exchange_#{@test_session_uuid}"
+    @app_id="gdd-testing-#{@test_session_uuid}_#{test_id}"
   end
+
+  after(:each) do
+    @opened_topic_exchanges<< @exchange_name
+    @opened_topic_exchanges<< "#{@app_id}.reply"
+    @opened_topic_exchanges<< "#{@app_id}.request"
+    @opened_topic_exchanges<< "#{@app_id}_delayed_in_x"
+    @opened_fanout_exchanges<< "#{@app_id}_delayed_out_x"
+    @opened_job_queues<< "#{@app_id}_job_q"
+    @opened_deferred_queues<< {name:"#{@app_id}_testing_key_deferred_q",
+                               args: {
+                                  'x-message-ttl' => 100,
+                                  'x-dead-letter-exchange' => "#{@app_id}_delayed_out_x",
+                                  'x-dead-letter-routing-key' => "testing_key",
+                                  }
+                              }
+  end
+
+
 
   describe 'no wildcard routing key' do
     before(:each) do
 
-      @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
-      @exchange_name="testing_exchange_#{@test_session_uuid}"
+      LogMessageHandler.listen_to "log.routing.key"
+      handler.listen_to "testing_key"
 
       GorgService.configuration=nil
       GorgService.configure do |c|
         c.application_name="GoogleDirectoryDaemon-test"
-        c.application_id="gdd-testing"
+        c.application_id=@app_id
         c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
         c.rabbitmq_port=RabbitmqConfig.value_at("r_port")
         c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
@@ -106,7 +171,6 @@ describe "Integrations tests" do
         c.rabbitmq_exchange_name=@exchange_name
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
-        c.message_handler_map={"testing_key"=> handler,"log.routing.key"=>LogMessageHandler}
         c.log_routing_key="log.routing.key"
       end
         
@@ -121,11 +185,26 @@ describe "Integrations tests" do
         exchange_name: @exchange_name
         )
       @service.start
+      @conn=@service.instance_variable_get(:@bunny_session)
     end
 
     after(:each) do
       @service.stop
+
+      sleep(3)
+
+      # chan=@conn.channel
+      # chan.topic(@exchange_name, durable:true).delete
+      # chan.topic("#{@app_id}.reply", durable:true).delete
+      # chan.topic("#{@app_id}.request", durable:true).delete
+      # chan.queue("#{@app_id}_job_q", durable: true).delete
+      #
+      # chan.close
+
+
+
     end
+
 
 
     describe "simple message handler" do
@@ -180,13 +259,13 @@ describe "Integrations tests" do
   describe 'with wildcard routing key' do
     before(:each) do
 
-      @queue_name="testing_queue_#{@test_session_uuid}_#{test_id}"
-      @exchange_name="testing_exchange_#{@test_session_uuid}"
+      LogMessageHandler.listen_to "log.routing.key"
+      handler.listen_to "*.testing_key.#"
 
       GorgService.configuration=nil
       GorgService.configure do |c|
         c.application_name="GoogleDirectoryDaemon-test"
-        c.application_id="gdd-testing"
+        c.application_id=@app_id
         c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
         c.rabbitmq_port=RabbitmqConfig.value_at("r_port")
         c.rabbitmq_user=RabbitmqConfig.value_at("r_user")
@@ -196,7 +275,6 @@ describe "Integrations tests" do
         c.rabbitmq_exchange_name=@exchange_name
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
-        c.message_handler_map={"*.testing_key.#"=> handler}
       end
 
       @service=GorgService.new

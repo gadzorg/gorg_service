@@ -28,12 +28,12 @@ describe GorgService::Message do
     it "raise an error on unparsable JSON" do
       json="{invalid json"
 
-      expect { GorgService::Message.parse_body(json) }.to raise_error(JSON::ParserError)
+      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::HardfailError)
     end
 
     it "raise an error on invalid JSON based on json SCHEMA" do
       json='{"state":"invalid"}'
-      expect { GorgService::Message.parse_body(json) }.to raise_error(JSON::Schema::ValidationError)
+      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::HardfailError)
     end
 
 
@@ -59,7 +59,7 @@ describe GorgService::Message do
           ]
       }.to_json
 
-        msg=GorgService::Message.parse_body(json)
+        msg=GorgService::Message.parse({routing_key:"testing_key"},{headers:nil},json)
 
         expect(msg.id).to eq("88d818a1-c77c-44e6-ad0c-8aa893468e94")
         expect(msg.event).to eq("testing_key")

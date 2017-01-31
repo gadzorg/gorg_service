@@ -1,10 +1,10 @@
 class GorgService
   class RabbitmqEnvBuilder
 
-    def initialize(conn:nil,main_exchange:"", app_id:"", deferred_time: 10000, listened_routing_keys: [], prefetch: 1)
+    def initialize(conn:nil, event_exchange:"", app_id:"", deferred_time: 10000, listened_routing_keys: [], prefetch: 1)
       @_conn=conn
       @app_id=app_id
-      @main_exchange_name=main_exchange
+      @event_exchange_name=event_exchange
       @deferred_time=deferred_time
       @delayed_queues={}
       @listened_routing_keys=listened_routing_keys
@@ -24,9 +24,18 @@ class GorgService
       @_ch
     end
 
-    def main_exchange
-      ch.topic(@main_exchange_name, :durable => true)
+    def request_exchange
+      ch.topic("#{@app_id}.request", :durable => true)
     end
+
+    def reply_exchange
+      ch.topic("#{@app_id}.reply", :durable => true)
+    end
+
+    def event_exchange
+      ch.topic(@event_exchange_name, :durable => true)
+    end
+
 
     def delayed_in_exchange
      ch.topic("#{@app_id}_delayed_in_x", :durable => true)
@@ -37,12 +46,14 @@ class GorgService
     end
 
     def job_queue
-      GorgService.logger.debug @listened_routing_keys
+      GorgService.logger.debug "Listened keys :#{@listened_routing_keys}"
       q=ch.queue("#{@app_id}_job_q", :durable => true)
       q.bind delayed_out_exchange
       @listened_routing_keys.each do |rk|
-        q.bind(main_exchange, :routing_key => rk)
+        q.bind(event_exchange, :routing_key => rk)
       end
+      q.bind(reply_exchange, :routing_key => "#")
+      q.bind(request_exchange, :routing_key => "#")
       q
     end
 
@@ -54,7 +65,9 @@ class GorgService
 
     def set_logger
       x=ch.fanout("log", :durable => true)
-      x.bind(main_exchange, :routing_key => "#")
+      x.bind(event_exchange, :routing_key => "#")
+      x.bind(reply_exchange, :routing_key => "#")
+      x.bind(request_exchange, :routing_key => "#")
       x.bind(delayed_in_exchange, :routing_key => "#")
     end
 
@@ -83,5 +96,3 @@ class GorgService
 
   end
 end
-
-#ch.queue(test,  durable: true, arguments: {'x-message-ttl' => 1000,'x-dead-letter-exchange' => "agoram_event_exchange",'x-dead-letter-routing-key' => "test",})

@@ -1,11 +1,14 @@
 require "gorg_message_sender"
 require "gorg_service/configuration"
+require "gorg_service/message_router"
 require "gorg_service/version"
 require "gorg_service/errors"
 require "gorg_service/rabbitmq_env_builder"
 require "gorg_service/listener"
 require "gorg_service/message"
 require "gorg_service/message_handler"
+require "gorg_service/event_handler"
+require "gorg_service/request_handler"
 
 #Duplicate GorgMessageSender to avoid configuration conflict
 RabbitmqProducer=GorgMessageSender.dup
@@ -22,17 +25,15 @@ class GorgService
       )
 
     @env=rabbitmq_env || RabbitmqEnvBuilder.new(
-      conn: @bunny_session,
-      main_exchange: GorgService.configuration.rabbitmq_exchange_name,
-      app_id:GorgService.configuration.application_id,
-      deferred_time: GorgService.configuration.rabbitmq_deferred_time.to_i,
-      listened_routing_keys: GorgService.configuration.message_handler_map.keys,
-      prefetch:GorgService.configuration.prefetch_count,
+        conn: @bunny_session,
+        event_exchange: GorgService.configuration.rabbitmq_exchange_name,
+        app_id:GorgService.configuration.application_id,
+        deferred_time: GorgService.configuration.rabbitmq_deferred_time.to_i,
+        listened_routing_keys: MessageRouter.listened_keys,
+        prefetch:GorgService.configuration.prefetch_count,
     )
 
     @listener= listener || Listener.new(
-      bunny_session: @bunny_session,
-      message_handler_map:GorgService.configuration.message_handler_map,
       env: @env,
       max_attempts: GorgService.configuration.rabbitmq_max_attempts.to_i,
       log_routing_key: GorgService.configuration.log_routing_key
