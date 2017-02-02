@@ -15,6 +15,7 @@ class GorgService
       @_conn.start unless @_conn.connected?
       @_conn
     end
+    alias_method :connection, :conn
 
     def ch
       unless (@_ch && @_ch.status == :open)
@@ -23,6 +24,7 @@ class GorgService
       end
       @_ch
     end
+    alias_method :channel, :ch
 
     def request_exchange
       ch.topic("#{@app_id}.request", :durable => true)
@@ -59,6 +61,22 @@ class GorgService
 
     def delayed_queue_for routing_key
       @delayed_queues[routing_key]||= create_delayed_queue_for(routing_key)
+    end
+
+    def find_exchange_by_name(name, type: 'topic', opts: {})
+      begin
+        ch.send(type,name,opts)
+      rescue Bunny::PreconditionFailed => e
+        regex=/PRECONDITION_FAILED - inequivalent arg '(?<arg>.*)' for exchange '(?<exchange>.*)' in vhost '(?<vhost>.*)': received '(?<our>.*)' but current is '(?<their>.*)'/
+        match=regex.match(e.message)
+
+        case match[:arg]
+          when "type"
+            find_exchange_by_name(name,type: match[:their],opts: opts)
+          else
+            find_exchange_by_name(name,type: type,opts: opts.merge({ match[:arg].to_sym =>  match[:their]}))
+        end
+      end
     end
 
     private

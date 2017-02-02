@@ -9,12 +9,6 @@ describe GorgService do
     expect(GorgService::VERSION).not_to be nil
   end
 
-  it 'call run on Listener' do
-    service= GorgService.new(listener: listener, bunny_session: bunny_session,rabbitmq_env: env)
-    service.start
-    expect(listener).to have_received.listen()
-  end
-
   it "is configurable" do
     GorgService.configure do |c|
       c.application_name        = "my_name"
@@ -22,7 +16,7 @@ describe GorgService do
       c.rabbitmq_host           = "localhost"
       c.rabbitmq_port           = 1234
       c.rabbitmq_queue_name     = "queue"
-      c.rabbitmq_exchange_name  = "exchange"
+      c.rabbitmq_event_exchange_name  = "exchange"
       c.rabbitmq_deferred_time  = 1000
       c.rabbitmq_max_attempts   = 10
       c.rabbitmq_user           = "my_user"
@@ -35,7 +29,7 @@ describe GorgService do
     expect(GorgService.configuration.rabbitmq_host).to           eq("localhost")
     expect(GorgService.configuration.rabbitmq_port).to           eq(1234)
     expect(GorgService.configuration.rabbitmq_queue_name).to     eq("queue")
-    expect(GorgService.configuration.rabbitmq_exchange_name).to  eq("exchange")
+    expect(GorgService.configuration.rabbitmq_event_exchange_name).to  eq("exchange")
     expect(GorgService.configuration.rabbitmq_deferred_time).to  eq(1000)
     expect(GorgService.configuration.rabbitmq_max_attempts).to   eq(10)
     expect(GorgService.configuration.rabbitmq_user).to           eq("my_user")

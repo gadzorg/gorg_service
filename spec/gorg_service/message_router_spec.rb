@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-describe GorgService::MessageRouter do
+describe GorgService::Consumer::MessageRouter do
 
   describe "routing" do
 
     it "convert keys to regex" do
-      l= GorgService::MessageRouter
+      l= GorgService::Consumer::MessageRouter
 
       expect(l.send(:amqp_key_to_regex,"agoram.users.create").match("agoram.users.create")).to    be_truthy
       expect(l.send(:amqp_key_to_regex,"agoram.users.create").match("agoram.gapps.create")).to    be_falsey

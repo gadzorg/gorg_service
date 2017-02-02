@@ -8,7 +8,7 @@ describe GorgService::Message do
   fake(:softfail_error,
     type: "softerror",
     message: "test_error",
-    error_raised: StandardError.new("This is the runtime error")) {GorgService::SoftfailError}
+    error_raised: StandardError.new("This is the runtime error")) {GorgService::Consumer::SoftfailError}
 
   it "log errors" do
 
@@ -28,12 +28,12 @@ describe GorgService::Message do
     it "raise an error on unparsable JSON" do
       json="{invalid json"
 
-      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::HardfailError)
+      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::Consumer::HardfailError)
     end
 
     it "raise an error on invalid JSON based on json SCHEMA" do
       json='{"state":"invalid"}'
-      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::HardfailError)
+      expect { GorgService::Message.parse(nil,nil,json) }.to raise_error(GorgService::Consumer::HardfailError)
     end
 
 
@@ -61,7 +61,7 @@ describe GorgService::Message do
 
         msg=GorgService::Message.parse({routing_key:"testing_key"},{headers:nil},json)
 
-        expect(msg.id).to eq("88d818a1-c77c-44e6-ad0c-8aa893468e94")
+        expect(msg.event_id).to eq("88d818a1-c77c-44e6-ad0c-8aa893468e94")
         expect(msg.event).to eq("testing_key")
         expect(msg.creation_time).to eq(DateTime.new(2016,5,29,15,03,50))
         expect(msg.sender).to eq("tester")
@@ -80,7 +80,7 @@ describe GorgService::Message do
 
     let(:json_msg) {msg.to_json}
     let(:msg) {GorgService::Message.new(
-          id: "88d818a1-c77c-44e6-ad0c-8aa893468e94",
+          event_id: "88d818a1-c77c-44e6-ad0c-8aa893468e94",
           event: "testing_key",
           sender: "tester",
           creation_time: DateTime.new(2016,5,29,15,03,50),

@@ -3,7 +3,7 @@ require 'securerandom'
 require 'gorg_message_sender'
 
 
-class SimpleMessageHandler < GorgService::MessageHandler
+class SimpleMessageHandler < GorgService::Consumer::MessageHandler::Base
 
 
   
@@ -21,7 +21,7 @@ class SimpleMessageHandler < GorgService::MessageHandler
   end
 end
 
-class LogMessageHandler < GorgService::MessageHandler
+class LogMessageHandler < GorgService::Consumer::MessageHandler::Base
 
   listen_to "log.routing.key"
   
@@ -39,7 +39,7 @@ class LogMessageHandler < GorgService::MessageHandler
   end
 end
 
-class SoftfailMessageHandler < GorgService::MessageHandler
+class SoftfailMessageHandler < GorgService::Consumer::MessageHandler::Base
   def initialize(msg)
     GorgService.logger.debug "Message received in SoftfailMessageHandler"
     @@message=msg
@@ -67,7 +67,7 @@ class SoftfailMessageHandler < GorgService::MessageHandler
 
 end
 
-class HardfailMessageHandler < GorgService::MessageHandler
+class HardfailMessageHandler < GorgService::Consumer::MessageHandler::Base
   def initialize(msg)
     GorgService.logger.debug "Message received in HardfailMessageHandler"
     raise_hardfail(msg.event.to_s)
@@ -126,7 +126,7 @@ describe "Integrations tests" do
     SimpleMessageHandler.reset
     LogMessageHandler.reset
 
-    GorgService::MessageRouter.routes.delete_if{|x|true}
+    GorgService::Consumer::MessageRouter.routes.delete_if{|x|true}
 
 
 
@@ -168,14 +168,14 @@ describe "Integrations tests" do
         c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
         c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
         c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
-        c.rabbitmq_exchange_name=@exchange_name
+        c.rabbitmq_event_exchange_name=@exchange_name
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
         c.log_routing_key="log.routing.key"
       end
         
 
-      @service=GorgService.new
+      @service=GorgService::Consumer.new
       @sender=GorgMessageSender.new(
         host:RabbitmqConfig.value_at("r_host"),
         port:RabbitmqConfig.value_at("r_port"),
@@ -272,12 +272,12 @@ describe "Integrations tests" do
         c.rabbitmq_password=RabbitmqConfig.value_at("r_pass")
         c.rabbitmq_vhost=RabbitmqConfig.value_at("r_vhost")
         c.rabbitmq_queue_name=@queue_name #change queue to avoid collision between tests
-        c.rabbitmq_exchange_name=@exchange_name
+        c.rabbitmq_event_exchange_name=@exchange_name
         c.rabbitmq_deferred_time=100
         c.rabbitmq_max_attempts=3
       end
 
-      @service=GorgService.new
+      @service=GorgService::Consumer.new
       @sender=GorgMessageSender.new(
         host:RabbitmqConfig.value_at("r_host"),
         port:RabbitmqConfig.value_at("r_port"),

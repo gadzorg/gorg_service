@@ -11,44 +11,78 @@ require "gorg_service/message/error_log"
 class GorgService
   class Message
 
+    attr_accessor :id
+    attr_accessor :reply_to
+    attr_accessor :correlation_id
+    attr_accessor :sender_id
+    attr_accessor :content_type
+    attr_accessor :content_encoding
+    attr_accessor :headers
+    attr_accessor :type
+
+    attr_accessor :event_id
     attr_accessor :routing_key
     attr_accessor :event
-    attr_accessor :id
     attr_accessor :data
     attr_accessor :errors
     attr_accessor :creation_time
     attr_accessor :sender
-    attr_accessor :headers
 
     def errors
       @errors||=[]
     end
 
 
-    def initialize(id: generate_id, data: nil, event: nil, creation_time: DateTime.now.iso8601, sender: application_id ,  errors: [],headers: {}, routing_key: nil)
-      @id=id
-      @event=event
-      @data=data
-      @errors=errors&&errors.map{|e| e.is_a?(GorgService::Message::ErrorLog) ? e : GorgService::Message::ErrorLog.parse(e)}
-      @creation_time=creation_time
-      @sender= sender
-      @headers= headers
-      @routing_key= routing_key
+    def initialize(opts={})
+      ##Message payload params
+      @event_id= opts.fetch(:event_id,generate_id)
+      @errors= opts.fetch(:errors,nil)
+      @creation_time= opts.fetch(:creation_time,DateTime.now.iso8601)
+      @sender= opts.fetch(:sender,application_id)
+      @event= opts.fetch(:event,nil)
+      @data= opts.fetch(:data,nil)
+
+      #Message Attributes params
+      @routing_key= opts.fetch(:routing_key,event)
+      @id= opts.fetch(:id,generate_id)
+      @reply_to= opts.fetch(:reply_to,nil)
+      @correlation_id= opts.fetch(:correlation_id,nil)
+      @sender_id= opts.fetch(:sender_id,application_id)
+      @content_type= opts.fetch(:content_type,"application/json")
+      @content_encoding= opts.fetch(:content_encoding,"deflate")
+      @headers= opts.fetch(:headers,{})
+      @type= opts.fetch(:type,"event")
     end
 
-    def to_h
-      body={
-        event_uuid: @id,
+    def body
+      _body={
+        event_uuid: @event_id,
         event_name: @event,
         event_sender_id: @sender,
         event_creation_time: @creation_time,
         data: @data,
       }
       if errors.any?
-        body[:errors_count]=@errors.count
-        body[:errors]=@errors.map{|e| e.to_h}
+        _body[:errors_count]=@errors.count
+        _body[:errors]=@errors.map{|e| e.to_h}
       end
-      body
+      _body
+    end
+    alias_method :to_h, :body
+    alias_method :payload, :body
+
+    def properties
+      {
+          routing_key: routing_key,
+          reply_to: reply_to,
+          correlation_id: correlation_id,
+          content_type: content_type,
+          content_encoding: content_encoding,
+          headers: headers,
+          app_id: sender_id,
+          type: type,
+          message_id: id,
+      }
     end
 
     # Generate RabbitMQ message body
@@ -66,6 +100,18 @@ class GorgService
       errors<<e
     end
 
+    def reply_exchange
+      reply_to
+    end
+
+    def expect_reply?
+      !!reply_to
+    end
+
+    def reply_routing_key
+      event.sub('request','reply')
+    end
+
     ### Class methods
 
     def self.parse(delivery_info, properties, body)
@@ -76,19 +122,27 @@ class GorgService
 
         msg=self.new(
             routing_key: delivery_info[:routing_key],
-            id: json_body["event_uuid"],
+            id: properties[:message_id],
+            reply_to: properties[:reply_to],
+            correlation_id: properties[:correlatio_to],
+            sender_id: properties[:app_id],
+            content_type: properties[:content_type],
+            content_encoding: properties[:content_encoding],
+            headers: properties[:header],
+            type: properties[:type],
+
+            event_id: json_body["event_uuid"],
             event: json_body["event_name"],
             data: convert_keys_to_sym(json_body["data"]),
             creation_time: json_body["event_creation_time"] && DateTime.parse(json_body["event_creation_time"]),
             sender: json_body["event_sender_id"],
             errors: json_body["errors"]&&json_body["errors"].map{|e| GorgService::Message::ErrorLog.parse(e)},
-            headers: properties[:headers]
         )
         msg
       rescue JSON::ParserError => e
-        raise GorgService::HardfailError.new("Unprocessable message : Unable to parse JSON message body", e)
+        raise GorgService::Consumer::HardfailError.new("Unprocessable message : Unable to parse JSON message body", e)
       rescue JSON::Schema::ValidationError => e
-        raise GorgService::HardfailError.new("Invalid JSON : This message does not respect Gadz.org JSON Schema",e)
+        raise GorgService::Consumer::HardfailError.new("Invalid JSON : This message does not respect Gadz.org JSON Schema",e)
       end
     end
 
@@ -117,7 +171,7 @@ class GorgService
       GorgService.configuration.application_id
     end
 
-   
+
 
   end
 end
