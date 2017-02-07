@@ -15,7 +15,6 @@ describe GorgService do
       c.application_id          = "app_id"
       c.rabbitmq_host           = "localhost"
       c.rabbitmq_port           = 1234
-      c.rabbitmq_queue_name     = "queue"
       c.rabbitmq_event_exchange_name  = "exchange"
       c.rabbitmq_deferred_time  = 1000
       c.rabbitmq_max_attempts   = 10
@@ -28,7 +27,6 @@ describe GorgService do
     expect(GorgService.configuration.application_id).to          eq("app_id")
     expect(GorgService.configuration.rabbitmq_host).to           eq("localhost")
     expect(GorgService.configuration.rabbitmq_port).to           eq(1234)
-    expect(GorgService.configuration.rabbitmq_queue_name).to     eq("queue")
     expect(GorgService.configuration.rabbitmq_event_exchange_name).to  eq("exchange")
     expect(GorgService.configuration.rabbitmq_deferred_time).to  eq(1000)
     expect(GorgService.configuration.rabbitmq_max_attempts).to   eq(10)
