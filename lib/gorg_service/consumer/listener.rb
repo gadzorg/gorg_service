@@ -24,7 +24,7 @@ class GorgService
           routing_key=delivery_info[:routing_key]
           GorgService.logger.info "Received message with routing key #{routing_key}"
           GorgService.logger.debug "Message properties : #{properties.to_s}"
-          GorgService.logger.debug "Message payload : #{body.to_s}"
+          GorgService.logger.debug "Message payload : #{body.to_s[0...10000]}"
 
           #Process
           process_message(delivery_info, properties, body)
@@ -70,7 +70,7 @@ class GorgService
       end
 
       def process_hardfail(e, message)
-        GorgService.logger.error "HARDFAIL ERROR : #{e.message}"
+        GorgService.logger.error "HARDFAIL ERROR : #{e.message}, #{e.error_raised&&e.error_raised.inspect}"
         GorgService.logger.info " DISCARD MESSAGE"
         if message
           message.log_error(e)

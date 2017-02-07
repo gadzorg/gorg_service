@@ -45,8 +45,7 @@ GorgService.configure do |c|
   # c.rabbitmq_vhost = "/"
   #
   #
-  # c.rabbitmq_queue_name = c.application_name
-  # c.rabbitmq_exchange_name = "exchange"
+  # c.rabbitmq_event_exchange_name = "exchange"
   #
   # time before trying again on softfail in milliseconds (temporary error)
   # c.rabbitmq_deferred_time = 1800000 # 30min
@@ -58,15 +57,6 @@ GorgService.configure do |c|
   # Central logging is disable if nil
   # c.log_routing_key = nil
   #
-  # Routing hash
-  #  map routing_key of received message with MessageHandler 
-  #  exemple:
-  # c.message_handler_map={
-  #   "some.routing.key" => MyMessageHandler,
-  #   "Another.routing.key" => OtherMessageHandler,
-  #   "third.routing.key" => MyMessageHandler,
-  # }
-  c.message_handler_map= {} #TODO : Set my routing hash
 
  end
 ```
@@ -80,19 +70,19 @@ my_service.run
 ```
 ### Routing and MessageHandler
 When running, GorgService act as a consumer on Gadz.org RabbitMQ network.
-It bind its queue on the main exchange and subscribes to routing keys defines in `message_handler_map`
+It bind its queue on the main exchange and subscribes to routing keys with `listen_to`
 
 Each received message will be routed to the corresponding `MessageHandler`. AMQP wildcards are supported.The first key to match the incoming routing key will be used.
 
-A `MessageHandler` is a kind of controller. This is where you put the message is processed.
+A `MessageHandler` is a kind of controller. This is where you the message is processed.
 A `MessageHandler` expect a `GorgService::Message` as param of its `initializer`method.
 
 Here is an exemple `MessageHandler` :
 ```ruby
-require 'json'
-require 'json-schema' #Checkout https://github.com/ruby-json-schema/json-schema
 
-class ExampleMessageHandler < GorgService::MessageHandler
+class ExampleMessageHandler < GorgService::Consumer::MessageHandler::EventHandler
+
+  listen_to "event.user.updated"
 
   EXPECTED_SCHEMA = {
     "type" => "object",
@@ -102,22 +92,25 @@ class ExampleMessageHandler < GorgService::MessageHandler
     }
   }
   
-  def initialize(msg)
-    data=msg.data
+  def validate
+    message.validate_with(EXPECTED_SCHEMA)
+  end
+  
+  def process
     begin
-      JSON::Validator.validate!(EXPECTED_SCHEMA, data)
-    rescue JSON::Schema::ValidationError => e
-      #This message can't be processed, it will be discarded
-      raise_hardfail("Invalid message",e)
-    end
-
-    begin
-      MyAPI.send(msg.data)
-    rescue MyAPI::UnavailableConnection => e
-      # This message can be processed but external resources
-      # are not available at this moment, retry later
-      raise_softfail("Can't connect to MyAPI",e)
-    end
+        if example=Example.update(message.data[:user_id])
+          producer=GorgServiceProducer.new
+          event=GorgService::Message.new(
+            event: "event.example.updated",
+            data: {example_id: example.id}
+          )
+          producer.publish_message(event)
+        else
+          raise_hardfail("Unable to update example")
+        end
+     rescue ApiConnectionError => e
+      raise_softfail("Unable to connect to API",error: e)
+     end
   end
 end
 ```
@@ -156,7 +149,6 @@ Error log structure :
 
 ## To Do
 
- - Internal logs using Logger
  - Allow disable JSON Schema Validation on incomming messages
  - Message and ErrorLog attributes validation
 

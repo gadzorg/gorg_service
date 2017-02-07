@@ -7,11 +7,16 @@ class GorgService
 
         def initialize(message)
           @message=message
-          validate(message)
+
+          begin
+            validate
+          rescue GorgService::Message::DataValidationError => e
+            raise_hardfail("DataValidationError",error: e.errors)
+          end
           process
         end
 
-        def validate(message)
+        def validate
           GorgService.logger.warn "WARNING : No message schema validation in #{self.class.name}, implement it in #validate(message) "
         end
 

@@ -11,6 +11,15 @@ require "gorg_service/message/error_log"
 class GorgService
   class Message
 
+    class DataValidationError < StandardError
+
+      attr_reader :errors
+
+      def initialize(errors)
+        @errors=errors
+      end
+    end
+
     attr_accessor :id
     attr_accessor :reply_to
     attr_accessor :correlation_id
@@ -111,6 +120,17 @@ class GorgService
     def reply_routing_key
       event.sub('request','reply')
     end
+
+    def validate_data_with(schema)
+      errors=JSON::Validator.fully_validate(schema, self.data)
+      if errors.any?
+        raise DataValidationError.new(errors)
+      else
+        return true
+      end
+    end
+
+
 
     ### Class methods
 

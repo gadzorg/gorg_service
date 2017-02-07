@@ -7,7 +7,7 @@ class GorgService
 
       def initialize(message)
         message_handler=self.class.message_handler_for message.routing_key
-        raise HardfailError.new("Routing error : No message handler finded for this routing key") unless message_handler
+        raise HardfailError.new("Routing error : No message handler found for this routing key") unless message_handler
 
         message_handler.new(message)
       end
@@ -30,6 +30,7 @@ class GorgService
           @routes.each do |k, mh|
             return mh if amqp_key_to_regex(k).match(routing_key)
           end
+          false
         end
 
         private

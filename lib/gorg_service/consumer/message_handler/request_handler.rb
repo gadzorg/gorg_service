@@ -29,7 +29,7 @@ class GorgService
                          error_data: data
                      })
 
-          super(message, error: nil)
+          super(message, error: error)
         end
 
         def raise_softfail(message, error: nil, data: nil)
@@ -39,7 +39,7 @@ class GorgService
                          debug_message: error&&error.inspect,
                          error_data: data
                      })
-          super(message, error: nil)
+          super(message, error: error)
         end
 
       end

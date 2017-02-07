@@ -21,7 +21,6 @@ class GorgService
                   :application_id,
                   :rabbitmq_host,
                   :rabbitmq_port,
-                  :rabbitmq_queue_name,
                   :rabbitmq_event_exchange_name,
                   :rabbitmq_deferred_time,
                   :rabbitmq_max_attempts,
@@ -41,7 +40,6 @@ class GorgService
       @message_handler_map     = {}
       @rabbitmq_host           = "localhost"
       @rabbitmq_port           = 5672
-      @rabbitmq_queue_name     = @application_id
       @rabbitmq_deferred_time  = 1800000    #30 minutes
       @rabbitmq_event_exchange_name  = "exchange"
       @rabbitmq_user           = nil
@@ -50,6 +48,10 @@ class GorgService
       @rabbitmq_max_attempts   = 48         #24h with default timeout
       @log_routing_key         = nil
       @prefetch_count          = 1
+    end
+
+    def rabbitmq_queue_name=(value)
+      warn "[DEPRECATION] GorgService::Configuration : `rabbitmq_queue_name=` is deprecated and will be removed soon."
     end
 
     # Deprecated: please use rabbitmq_event_exchange_name instead

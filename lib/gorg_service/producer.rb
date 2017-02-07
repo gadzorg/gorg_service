@@ -16,8 +16,8 @@ class GorgService
 
     def publish_message(message, exchange: default_exchange)
       x=exchange.is_a?(Bunny::Exchange) ? exchange : environment.find_exchange_by_name(exchange)
-      GorgService.logger.info "Publish to #{x.name} - key : #{message.event}"
-      GorgService.logger.debug "Message content : #{message.body}"
+      GorgService.logger.info "Publish to #{x.name} - key : #{message.routing_key}"
+      GorgService.logger.debug "Message content : #{message.body.to_s[0...10000]}"
 
       x.publish(message.to_json, message.properties)
     end
