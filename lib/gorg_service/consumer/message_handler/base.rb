@@ -8,12 +8,15 @@ class GorgService
         def initialize(message)
           @message=message
 
-          begin
-            validate
-          rescue GorgService::Message::DataValidationError => e
-            raise_hardfail("DataValidationError",error: e.errors)
+          GorgService::Consumer::MessageHandler::ExceptionManager.instance.with_exception_rescuing(self.message) do
+            begin
+              validate
+            rescue GorgService::Message::DataValidationError => e
+              raise_hardfail("DataValidationError",error: e.errors)
+            end
+
+            process
           end
-          process
         end
 
         def validate
@@ -30,14 +33,25 @@ class GorgService
         alias_method :msg, :message
 
         def raise_hardfail(message, error: nil)
-          raise HardfailError.new(message, error)
+          self.class.raise_hardfail(message, error: error)
         end
 
         def raise_softfail(message, error: nil)
-          raise SoftfailError.new(message, error)
+          self.class.raise_softfail(message, error: error)
         end
 
         class << self
+          def raise_hardfail(message, error: nil)
+            raise HardfailError.new(message, error)
+          end
+
+          def raise_softfail(message, error: nil)
+            raise SoftfailError.new(message, error)
+          end
+
+          def handle_error(*errorClasses,&block)
+            GorgService::Consumer::MessageHandler::ExceptionManager.instance.set_rescue_from(*errorClasses,&block)
+          end
 
           def listen_to(routing_key)
             MessageRouter.register_route(routing_key, self)

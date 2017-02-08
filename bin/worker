@@ -14,4 +14,4 @@ require "gorg_service"
 env_path=File.expand_path("./env.rb",File.dirname(__FILE__)) 
 require env_path if File.file?(env_path)
 
-GorgService.new.run
+GorgService::Consumer.new.run

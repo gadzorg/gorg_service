@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
+require "gorg_service/consumer/message_handler/exception_manager"
+
 class GorgService
   class Consumer
     module MessageHandler
