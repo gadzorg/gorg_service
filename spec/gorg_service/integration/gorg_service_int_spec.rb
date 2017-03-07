@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'securerandom'
 require 'gorg_message_sender'
+require 'gorg_service/rspec/bunny_cleaner'
 
 
 class SimpleMessageHandler < GorgService::Consumer::MessageHandler::Base
@@ -77,47 +78,17 @@ end
 
 
 
-$count = 0
 describe "Integrations tests" do
-
-  let!(:test_id) {$count += 1}
 
   before(:all) do
 
     @test_session_uuid="testing_exchange_#{SecureRandom.uuid}"
     puts "Using UUID : #{ @test_session_uuid}"
-
-    @opened_topic_exchanges=[]
-    @opened_fanout_exchanges=[]
-    @opened_job_queues=[]
-    @opened_deferred_queues=[]
   end
 
-  after(:all) do
-    conn=Bunny.new(
-        :hostname => RabbitmqConfig.value_at("r_host"),
-        :port => RabbitmqConfig.value_at("r_port"),
-        :user => RabbitmqConfig.value_at("r_user"),
-        :pass => RabbitmqConfig.value_at("r_pass"),
-        :vhost => RabbitmqConfig.value_at("r_vhost"),
-    )
-
-    conn.start
-
-    c=conn.create_channel
-
-
-    @opened_topic_exchanges.each do |x|
-      c.topic(x,durable:true).delete
-    end
-    @opened_fanout_exchanges.each do |x|
-      c.fanout(x,durable:true).delete
-    end
-    @opened_job_queues.each do |q|
-      c.queue(q,durable:true).delete
-    end
-    @opened_deferred_queues.each do |q|
-      c.queue(q[:name],durable:true,arguments: q[:args]).delete
+  around(:each) do |example|
+    BunnyCleaner.cleaning do
+      example.run
     end
   end
 
@@ -128,28 +99,9 @@ describe "Integrations tests" do
 
     GorgService::Consumer::MessageRouter.routes.delete_if{|x|true}
 
-
-
     @exchange_name="testing_exchange_#{@test_session_uuid}"
-    @app_id="gdd-testing-#{@test_session_uuid}_#{test_id}"
+    @app_id="gdd-testing-#{@test_session_uuid}"
   end
-
-  after(:each) do
-    @opened_topic_exchanges<< @exchange_name
-    @opened_topic_exchanges<< "#{@app_id}.reply"
-    @opened_topic_exchanges<< "#{@app_id}.request"
-    @opened_topic_exchanges<< "#{@app_id}_delayed_in_x"
-    @opened_fanout_exchanges<< "#{@app_id}_delayed_out_x"
-    @opened_job_queues<< "#{@app_id}_job_q"
-    @opened_deferred_queues<< {name:"#{@app_id}_testing_key_deferred_q",
-                               args: {
-                                  'x-message-ttl' => 100,
-                                  'x-dead-letter-exchange' => "#{@app_id}_delayed_out_x",
-                                  'x-dead-letter-routing-key' => "testing_key",
-                                  }
-                              }
-  end
-
 
 
   describe 'no wildcard routing key' do
@@ -160,6 +112,7 @@ describe "Integrations tests" do
 
       GorgService.configuration=nil
       GorgService.configure do |c|
+        c.rabbitmq_client_class=BunnyCleaner
         c.application_name="GoogleDirectoryDaemon-test"
         c.application_id=@app_id
         c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
@@ -212,7 +165,6 @@ describe "Integrations tests" do
       let(:handler) {SimpleMessageHandler}
 
       it "Send message to MessageHandler" do
-        puts "test_id : #{test_id}"
         @sender.send_message({test_data: "testing_message"},"testing_key")
         sleep(1)
         expect(handler.message.data).to eq({test_data: "testing_message"})
@@ -223,7 +175,6 @@ describe "Integrations tests" do
       let(:handler) {SoftfailMessageHandler}
 
       before(:each) do
-        puts "test_id : #{test_id}"
         @sender.send_message({test_data: "testing_message"},"testing_key")
         sleep(1)
       end
@@ -244,8 +195,6 @@ describe "Integrations tests" do
       let(:handler) {HardfailMessageHandler}
 
       it "send error to logging key" do
-        puts "test_id : #{test_id}"
-
         @sender.send_message({test_data: "testing_message"},"testing_key")
 
         sleep(2)
@@ -264,6 +213,7 @@ describe "Integrations tests" do
 
       GorgService.configuration=nil
       GorgService.configure do |c|
+        c.rabbitmq_client_class=BunnyCleaner
         c.application_name="GoogleDirectoryDaemon-test"
         c.application_id=@app_id
         c.rabbitmq_host=RabbitmqConfig.value_at("r_host")
@@ -298,7 +248,6 @@ describe "Integrations tests" do
       let(:handler) {SimpleMessageHandler}
 
       it "Send message to MessageHandler" do
-        puts "test_id : #{test_id}"
         @sender.send_message({test_data: "testing_message"},"my.testing_key.is.awesome")
         sleep(1)
         expect(handler.message.data).to eq({test_data: "testing_message"})
@@ -309,7 +258,6 @@ describe "Integrations tests" do
       let(:handler) {SoftfailMessageHandler}
 
       it "retry 3 times" do
-        puts "test_id : #{test_id}"
         @sender.send_message({test_data: "testing_message"},"my.testing_key")
 
         sleep(1)

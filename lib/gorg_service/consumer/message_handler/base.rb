@@ -57,6 +57,10 @@ class GorgService
             MessageRouter.register_route(routing_key, self)
           end
 
+          def reset_listen_to!
+            MessageRouter.delete_routes_of(self)
+          end
+
         end
       end
     end

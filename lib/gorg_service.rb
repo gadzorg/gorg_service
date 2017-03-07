@@ -12,7 +12,7 @@ class GorgService
 
     #Connection shared across Consumers and Producers (thread safe)
     def connection
-      @bunny_session||=Bunny.new(
+      @bunny_session||=GorgService.configuration.rabbitmq_client_class.new(
           :hostname => GorgService.configuration.rabbitmq_host,
           :port => GorgService.configuration.rabbitmq_port,
           :user => GorgService.configuration.rabbitmq_user,

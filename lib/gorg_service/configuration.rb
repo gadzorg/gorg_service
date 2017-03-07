@@ -17,7 +17,8 @@ class GorgService
   # Hold configuration of GorgService in instance variables
   class Configuration
     
-    attr_accessor :application_name,
+    attr_accessor :rabbitmq_client_class,
+                  :application_name,
                   :application_id,
                   :rabbitmq_host,
                   :rabbitmq_port,
@@ -34,6 +35,7 @@ class GorgService
 
 
     def initialize
+      @rabbitmq_client_class   = Bunny
       @logger                  = Logger.new(STDOUT)
       @application_name        = "GorgService"
       @application_id          = "gs" 

@@ -22,6 +22,10 @@ class GorgService
           routes[routing_key]=message_handler
         end
 
+        def delete_routes_of(message_handler)
+          routes.reject!{|_k,v|v==message_handler}
+        end
+
         def listened_keys
           routes.keys
         end

@@ -2,5 +2,5 @@
 # encoding: utf-8
 
 class GorgService
-  VERSION = "5.1.0"
+  VERSION = "5.2.0"
 end

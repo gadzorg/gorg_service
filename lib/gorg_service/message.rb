@@ -144,7 +144,7 @@ class GorgService
             routing_key: delivery_info[:routing_key],
             id: properties[:message_id],
             reply_to: properties[:reply_to],
-            correlation_id: properties[:correlatio_to],
+            correlation_id: properties[:correlation_id],
             sender_id: properties[:app_id],
             content_type: properties[:content_type],
             content_encoding: properties[:content_encoding],
