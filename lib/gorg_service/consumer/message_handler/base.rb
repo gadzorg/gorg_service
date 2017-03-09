@@ -32,21 +32,57 @@ class GorgService
         end
         alias_method :msg, :message
 
-        def raise_hardfail(message, error: nil)
-          self.class.raise_hardfail(message, error: error)
+        def reply_with(data)
+          self.class.reply_to(message, data)
         end
 
-        def raise_softfail(message, error: nil)
-          self.class.raise_softfail(message, error: error)
+        def raise_hardfail(error_message, error: nil, data: nil)
+          self.class.raise_hardfail(error_message, error: error, message:message, data:data)
+        end
+
+        def raise_softfail(error_message, error: nil, data: nil)
+          self.class.raise_softfail(error_message, error: error, message:message, data:data)
         end
 
         class << self
-          def raise_hardfail(message, error: nil)
-            raise HardfailError.new(message, error)
+
+          def reply_to(message,data)
+            if message.expect_reply?
+
+              reply=GorgService::Message.new(
+                  event: message.reply_routing_key,
+                  data: data,
+                  correlation_id: message.id,
+                  type: "reply"
+              )
+
+              replier=GorgService::Producer.new
+              replier.publish_message(reply,exchange: message.reply_to)
+            end
           end
 
-          def raise_softfail(message, error: nil)
-            raise SoftfailError.new(message, error)
+          def raise_hardfail(error_message,message:nil, error: nil, data: nil)
+            if message
+              reply_to(message,{
+                  status: 'hardfail',
+                  error_message: error_message,
+                  debug_message: error&&error.inspect,
+                  error_data: data
+              })
+            end
+            raise HardfailError.new(error_message, error)
+          end
+
+          def raise_softfail(error_message,message:nil, error: nil, data: nil)
+            if message
+              reply_to(message,{
+                  status: 'softfail',
+                  error_message: error_message,
+                  debug_message: error&&error.inspect,
+                  error_data: data
+              })
+            end
+            raise SoftfailError.new(error_message, error)
           end
 
           def handle_error(*errorClasses,&block)
