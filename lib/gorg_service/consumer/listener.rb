@@ -51,6 +51,8 @@ class GorgService
             incomming_message_error_count=message.errors.count
             MessageRouter.new(message)
             process_logging(message) if message.errors.count>incomming_message_error_count
+          rescue SoftfailError, HardfailError
+            raise
           rescue  StandardError => e
             raise HardfailError.new("UnrescuedException", e)
           end
