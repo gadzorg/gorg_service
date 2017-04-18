@@ -43,14 +43,17 @@ class GorgService
       def process_message(delivery_info, _properties, body)
         message=nil
         begin
-          #Parse message
-          message=Message.parse(delivery_info, _properties, body)
+          begin
+            #Parse message
+            message=Message.parse(delivery_info, _properties, body)
 
-          #Process message
-          incomming_message_error_count=message.errors.count
-          MessageRouter.new(message)
-          process_logging(message) if message.errors.count>incomming_message_error_count
-
+            #Process message
+            incomming_message_error_count=message.errors.count
+            MessageRouter.new(message)
+            process_logging(message) if message.errors.count>incomming_message_error_count
+          rescue  StandardError => e
+            raise HardfailError.new("UnrescuedException", e)
+          end
         rescue SoftfailError => e
           process_softfail(e, message)
         rescue HardfailError => e
