@@ -44,12 +44,13 @@ class GorgService
         message=nil
         begin
           #Parse message
-          message=Message.parse(delivery_info, _properties, body)
+            message=Message.parse(delivery_info, _properties, body)
+
 
           #Process message
-          incomming_message_error_count=message.errors.count
+          #incomming_message_error_count=message.errors.count
           MessageRouter.new(message)
-          process_logging(message) if message.errors.count>incomming_message_error_count
+          #process_logging(message) if message.errors.count>incomming_message_error_count
 
         rescue SoftfailError => e
           process_softfail(e, message)
@@ -59,35 +60,38 @@ class GorgService
       end
 
       def process_softfail(e, message)
-        message.log_error(e)
+        e.gorg_service_message ||= message
         GorgService.logger.error "SOFTFAIL ERROR : #{e.message}"
-        if message.errors.count.to_i >= @max_attempts
-          GorgService.logger.info " DISCARD MESSAGE : #{message.errors.count} errors in message log"
-          process_hardfail(HardfailError.new("Too Much SoftError : This message reached the limit of softerror (max: #{@max_attempts})"), message)
+        process_logging(e)
+        message.softfail_count+=1
+        if message.softfail_count.to_i >= @max_attempts
+          GorgService.logger.info " DISCARD MESSAGE : too much soft errors (#{message.softfail_count})"
+          process_hardfail(HardfailError.new("Too Much SoftError : This message reached the limit of softerror (max: #{@max_attempts})", gorg_service_message: message, error_name: e.error_name), message)
         else
           send_to_deferred_queue(message)
         end
       end
 
       def process_hardfail(e, message)
+        e.gorg_service_message ||= message
         GorgService.logger.error "HARDFAIL ERROR : #{e.message}, #{e.error_raised&&e.error_raised.inspect}"
         GorgService.logger.info " DISCARD MESSAGE"
-        if message
-          message.log_error(e)
-          process_logging(message)
-        end
+        process_logging(e)
       end
 
-      def process_logging(message)
+      def process_logging(error)
+        message=error.to_log_message
         message.routing_key=@log_routing_key
         GorgService::Producer.new.publish_message(message)
-        #RabbitmqProducer.new.send_raw(message.to_json, @log_routing_key, verbose: true) if @log_routing_key
       end
 
-      def send_to_deferred_queue(msg)
-        if @env.delayed_queue_for msg.event
-          @env.delayed_in_exchange.publish(msg.to_json, :routing_key => msg.event)
-          GorgService.logger.info "DEFER MESSAGE : message sent to #{@env.delayed_in_exchange.name} with routing key #{msg.event}"
+      def send_to_deferred_queue(message)
+
+        if @env.delayed_queue_for message.routing_key
+          GorgService::Producer.new.publish_message(message, exchange: @env.delayed_in_exchange)
+          #
+          # @env.delayed_in_exchange.publish(msg.to_json, :routing_key => msg.routing_key)
+          GorgService.logger.info "DEFER MESSAGE : message sent to #{@env.delayed_in_exchange.name} with routing key #{message.routing_key}"
         else
           raise "DelayedQueueNotFound"
         end

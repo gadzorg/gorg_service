@@ -9,15 +9,15 @@ class LogMessageHandler < GorgService::Consumer::MessageHandler::Base
   end
 
   def self.has_received_error?(type)
-    messages.any?{|m| m.errors.any?{|x| x.type==type}}
+    messages.any?{|m| m.errors.any?{|x| x.type==type}} || messages.any?{|m| m.type=='log'&&m.error_type=type}
   end
 
   def self.has_received_hardfail?
-    self.has_received_error?("harderror")
+    self.has_received_error?("hardfail")
   end
 
-  def self.has_received_hardfail?
-    self.has_received_error?("softerror")
+  def self.has_received_softfail?
+    self.has_received_error?("softfail")
   end
 
   def self.has_received_a_message_with_routing_key?(routing_key)

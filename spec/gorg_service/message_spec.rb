@@ -99,7 +99,7 @@ describe GorgService::Message do
 
     it "is valid against JSON schema" do
 
-      expect(JSON::Validator.fully_validate(GorgService::Message::JSON_SCHEMA,json_msg)).to match_array([])
+      expect(JSON::Validator.fully_validate(GorgService::Message::FormatterV1::JSON_SCHEMA_V1, json_msg)).to match_array([])
     end
 
     it "returns its data" do
