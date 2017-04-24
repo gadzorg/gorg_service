@@ -74,6 +74,12 @@ class HardfailMessageHandler < GorgService::Consumer::MessageHandler::Base
   end
 end
 
+class ExceptionMessageHandler < GorgService::Consumer::MessageHandler::Base
+  def initialize(msg)
+    GorgService.logger.debug "Message received in ExceptionMessageHandler"
+    raise "Some Error"
+  end
+end
 
 
 
@@ -202,6 +208,19 @@ describe "Integrations tests SOAv2" do
                                                  type: 'log',
                                                  error_type: 'hardfail',
                                              )
+      end
+
+    end
+
+    describe "Unhandled Excceptions" do
+      let(:handler) {ExceptionMessageHandler}
+
+      it "raise a HardFail Error" do
+        @sender.send_message({test_data: "testing_message"},"testing_key")
+
+        sleep(2)
+
+        expect(LogMessageHandler.message.data).to eq({test_data: "testing_message"})
       end
 
     end
