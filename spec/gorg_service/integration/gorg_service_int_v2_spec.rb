@@ -148,7 +148,7 @@ describe "Integrations tests SOAv2" do
 
     end
 
-    let(:message) {GorgService::Message.new(routing_key: "testing_key", data:{test_data: "testing_message"}, soa_version: '2.0')}
+    let(:message) {GorgService::EventMessage.new(routing_key: "testing_key", data:{test_data: "testing_message"}, soa_version: '2.0')}
 
 
     describe "simple message handler" do
