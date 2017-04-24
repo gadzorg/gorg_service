@@ -216,11 +216,15 @@ describe "Integrations tests SOAv2" do
       let(:handler) {ExceptionMessageHandler}
 
       it "raise a HardFail Error" do
-        @sender.send_message({test_data: "testing_message"},"testing_key")
+        GorgService::Producer.new().publish_message(message)
 
         sleep(2)
 
-        expect(LogMessageHandler.message.data).to eq({test_data: "testing_message"})
+        expect(LogMessageHandler.message).to have_attributes(
+                                                 correlation_id: message.id,
+                                                 type: 'log',
+                                                 error_type: 'hardfail',
+                                             )
       end
 
     end
